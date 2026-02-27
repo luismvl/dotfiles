@@ -1,0 +1,47 @@
+add_newline = false
+
+format = "$username$directory$git_branch$git_status$cmd_duration$character"
+
+[username]
+show_always = false
+style_user = "dimmed white"
+style_root = "bold red"
+format = "[$user ]($style)"
+disabled = false
+
+[directory]
+style = "bold white"
+truncation_length = 2
+fish_style_pwd_dir_length = 1
+truncate_to_repo = true
+format = "[$path]($style) "
+
+[git_branch]
+symbol = ""
+style = "dimmed white"
+format = "[($branch)]($style)"
+
+[git_status]
+style = "red"
+format = "[ $all_status$ahead_behind]($style)"
+conflicted = "= "
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+up_to_date = ""
+untracked = "?${count} "
+stashed = "\\$${count} "
+modified = "!${count} "
+staged = "+${count} "
+renamed = "»${count} "
+deleted = "✘${count} "
+
+[cmd_duration]
+min_time = 2000
+style = "dimmed white"
+format = "[ took $duration]($style)"
+
+[character]
+success_symbol = "[ ›](bold white)"
+error_symbol = "[ ›](bold red)"
+vimcmd_symbol = "[ ‹](bold white)"

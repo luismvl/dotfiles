@@ -1,0 +1,42 @@
+# Subdued, low-saturation eza theme aligned with the prompt.
+# If your eza build does not load theme files, see README fallback notes.
+
+permissions:
+  user_read: { foreground: 244 }
+  user_write: { foreground: 244 }
+  user_execute_file: { foreground: 108 }
+  user_execute_other: { foreground: 108 }
+  group_read: { foreground: 244 }
+  group_write: { foreground: 244 }
+  group_execute: { foreground: 108 }
+  other_read: { foreground: 244 }
+  other_write: { foreground: 244 }
+  other_execute: { foreground: 108 }
+  special_user_file: { foreground: 244 }
+  special_other: { foreground: 244 }
+  attribute: { foreground: 244 }
+
+filekinds:
+  normal: { foreground: 252 }
+  directory: { foreground: 110 }
+  symlink: { foreground: 109 }
+  pipe: { foreground: 244 }
+  block_device: { foreground: 244 }
+  char_device: { foreground: 244 }
+  socket: { foreground: 244 }
+  special: { foreground: 244 }
+  executable: { foreground: 108 }
+  mount_point: { foreground: 110 }
+
+punctuation: { foreground: 244 }
+date: { foreground: 244 }
+inode: { foreground: 244 }
+blocks: { foreground: 244 }
+header: { foreground: 244 }
+octal: { foreground: 244 }
+flags: { foreground: 244 }
+
+symlink_path: { foreground: 109 }
+control_char: { foreground: 244 }
+broken_symlink: { foreground: 244 }
+broken_path_overlay: { foreground: 244 }
