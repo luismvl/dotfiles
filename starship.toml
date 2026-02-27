@@ -42,6 +42,6 @@ style = "dimmed white"
 format = "[ took $duration]($style)"
 
 [character]
-success_symbol = "[ ›](bold white)"
+success_symbol = "[ ›](bold red)"
 error_symbol = "[ ›](bold red)"
 vimcmd_symbol = "[ ‹](bold white)"

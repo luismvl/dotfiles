@@ -100,6 +100,7 @@ ff() {
 
 source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 source ~/.zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+source ~/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh
 
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
@@ -122,7 +123,4 @@ source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 # Prompt
 # -----------------------------
 
-if [[ -z "${__MY_STARSHIP_INIT_DONE:-}" ]]; then
-  eval "$(starship init zsh)"
-  export __MY_STARSHIP_INIT_DONE=1
-fi
+eval "$(starship init zsh)"

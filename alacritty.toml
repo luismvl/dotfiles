@@ -1,0 +1,97 @@
+live_config_reload = true
+import = ["~/.config/alacritty/local-font.toml"]
+
+[window]
+dimensions = { columns = 160, lines = 60 }
+padding = { x = 8, y = 8 }
+opacity = 0.92
+dynamic_title = true
+decorations = "Full"
+
+[scrolling]
+history = 100000
+multiplier = 3
+
+[selection]
+save_to_clipboard = true
+
+[cursor]
+unfocused_hollow = true
+style = { shape = "Block", blinking = "Off" }
+
+[font]
+size = 13.0
+
+[font.normal]
+family = "CaskaydiaCove Nerd Font"
+style = "Regular"
+
+[font.bold]
+family = "CaskaydiaCove Nerd Font"
+style = "Bold"
+
+[font.italic]
+family = "CaskaydiaCove Nerd Font"
+style = "Italic"
+
+[font.bold_italic]
+family = "CaskaydiaCove Nerd Font"
+style = "Bold Italic"
+
+[shell]
+program = "/usr/bin/zsh"
+
+[colors.primary]
+background = "#111417"
+foreground = "#d3d8de"
+
+[colors.cursor]
+text = "#111417"
+cursor = "#d3d8de"
+
+[colors.selection]
+text = "#d3d8de"
+background = "#2a3138"
+
+[colors.normal]
+black = "#161b20"
+red = "#c97b7b"
+green = "#87a987"
+yellow = "#b6a47a"
+blue = "#7f93ab"
+magenta = "#9a88b3"
+cyan = "#7fa4a8"
+white = "#c2c9d0"
+
+[colors.bright]
+black = "#2a3138"
+red = "#d88a8a"
+green = "#95b895"
+yellow = "#c4b387"
+blue = "#8da2bb"
+magenta = "#a996c3"
+cyan = "#8eb4b8"
+white = "#d3d8de"
+
+[[hints.enabled]]
+regex = "(ipfs:|ipns:|magnet:|mailto:|gemini://|gopher://|https://|http://|news:|file://|git://|ssh:|ftp://)[^\\u0000-\\u001F\\u007F-\\u009F<>\"\\s{-}\\^⟨⟩`]+"
+hyperlinks = true
+post_processing = true
+command = "xdg-open"
+mouse = { enabled = true }
+binding = { key = "U", mods = "Control|Shift" }
+
+[[hints.enabled]]
+regex = "((\\./|\\.\\./|~/|/)[[:alnum:]_./-]+)"
+post_processing = false
+command = "xdg-open"
+mouse = { enabled = true, mods = "Control" }
+binding = { key = "F", mods = "Control|Shift" }
+
+[keyboard]
+bindings = [
+  { key = "Equals", mods = "Control", action = "IncreaseFontSize" },
+  { key = "Plus", mods = "Control", action = "IncreaseFontSize" },
+  { key = "Minus", mods = "Control", action = "DecreaseFontSize" },
+  { key = "Key0", mods = "Control", action = "ResetFontSize" },
+]
