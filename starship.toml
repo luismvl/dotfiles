@@ -10,7 +10,7 @@ format = "[$user ]($style)"
 disabled = false
 
 [directory]
-style = "bold white"
+style = "bold 110"
 truncation_length = 2
 fish_style_pwd_dir_length = 1
 truncate_to_repo = true

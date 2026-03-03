@@ -124,3 +124,10 @@ source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 # -----------------------------
 
 eval "$(starship init zsh)"
+
+# bun completions
+[ -s "/home/luismvl/.bun/_bun" ] && source "/home/luismvl/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
