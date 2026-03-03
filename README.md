@@ -135,6 +135,13 @@ Reload tmux config:
 tmux source-file ~/.tmux.conf
 ```
 
+tmux persistence (resurrect + continuum):
+
+- One-time after opening tmux: `prefix + I` (installs tmux plugins via TPM)
+- Manual save session: `prefix + Ctrl-s`
+- Manual restore session: `prefix + Ctrl-r`
+- Auto-save every 15 minutes and auto-restore on tmux start are enabled.
+
 LazyVim first run:
 
 ```bash

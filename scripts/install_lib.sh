@@ -150,7 +150,7 @@ ensure_neovim_min_version() {
   local current=""
 
   if command -v nvim >/dev/null 2>&1; then
-    current="$(nvim --version 2>/dev/null | head -n1 | sed -E 's/.*v([0-9]+\\.[0-9]+\\.[0-9]+).*/\\1/' || true)"
+    current="$(nvim --version 2>/dev/null | head -n1 | grep -Eo '[0-9]+\\.[0-9]+\\.[0-9]+' | head -n1 || true)"
   fi
 
   if [[ -n "$current" ]] && command -v dpkg >/dev/null 2>&1 && dpkg --compare-versions "$current" ge "$required"; then
@@ -209,6 +209,11 @@ clone_plugin_if_missing() {
   fi
 
   run_cmd git clone "$repo" "$dest"
+}
+
+install_tmux_tpm() {
+  local dest="$HOME/.tmux/plugins/tpm"
+  clone_plugin_if_missing "https://github.com/tmux-plugins/tpm" "$dest"
 }
 
 set_default_terminal_alacritty() {

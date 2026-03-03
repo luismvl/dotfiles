@@ -11,7 +11,7 @@ REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/install_lib.sh
 source "$REPO_DIR/scripts/install_lib.sh"
 
-run_cmd mkdir -p "$HOME/.config" "$HOME/.config/eza" "$HOME/.config/alacritty" "$HOME/.zsh/plugins" "$HOME/.local/share/fonts"
+run_cmd mkdir -p "$HOME/.config" "$HOME/.config/eza" "$HOME/.config/alacritty" "$HOME/.zsh/plugins" "$HOME/.tmux/plugins" "$HOME/.local/share/fonts"
 
 install_apt_packages
 install_zoxide
@@ -26,6 +26,7 @@ clone_plugin_if_missing "https://github.com/zsh-users/zsh-autosuggestions" "$HOM
 clone_plugin_if_missing "https://github.com/zsh-users/zsh-history-substring-search" "$HOME/.zsh/plugins/zsh-history-substring-search"
 clone_plugin_if_missing "https://github.com/Aloxaf/fzf-tab" "$HOME/.zsh/plugins/fzf-tab"
 clone_plugin_if_missing "https://github.com/zsh-users/zsh-syntax-highlighting" "$HOME/.zsh/plugins/zsh-syntax-highlighting"
+install_tmux_tpm
 
 link_file "$REPO_DIR/zshrc" "$HOME/.zshrc"
 link_file "$REPO_DIR/starship.toml" "$HOME/.config/starship.toml"
