@@ -1,4 +1,5 @@
 export ZSH="$HOME/.zsh"
+export PATH="$HOME/.local/bin:$PATH"
 
 # -----------------------------
 # Core shell behavior

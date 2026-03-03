@@ -371,7 +371,7 @@ write_alacritty_local_font_override() {
   mkdir -p "$HOME/.config/alacritty"
   cat > "$target" <<EOF2
 [font]
-size = 13.0
+size = 12.0
 
 [font.normal]
 family = "$escaped_family"

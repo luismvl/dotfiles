@@ -149,7 +149,7 @@ nvim
 ```
 
 On first launch, LazyVim/lazy.nvim will install plugins automatically.
-Then run `:LazyHealth` and `:LazyExtras` to explore/add more modules as you learn.
+Then run `:checkhealth lazy`, `:checkhealth lazyvim`, and `:LazyExtras` to explore/add more modules as you learn.
 
 Included web-dev extras:
 
