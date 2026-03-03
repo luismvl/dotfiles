@@ -129,6 +129,22 @@ Plugins are expected at:
 exec zsh
 ```
 
+## Machine-local overrides (recommended)
+
+For machine-specific config that should not be committed to dotfiles:
+
+- Zsh: `~/.zshrc.local` (auto-sourced by `~/.zshrc`)
+- tmux: `~/.tmux.conf.local` (auto-sourced by `~/.tmux.conf`)
+- Neovim: `~/.config/nvim/lua/config/local.lua` (optional `pcall(require, "config.local")`)
+
+Suggested local stacks completion example in `~/.zshrc.local`:
+
+```zsh
+if command -v stacks >/dev/null 2>&1; then
+  eval "$(stacks completion zsh)"
+fi
+```
+
 Reload tmux config:
 
 ```bash
