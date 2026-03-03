@@ -22,11 +22,14 @@ dotfiles/
 ├── tmux.conf
 ├── nvim/
 │   ├── init.lua
+│   ├── lazyvim.json
 │   └── lua/
 │       ├── config/
 │       │   ├── lazy.lua
+│       │   ├── local.example.lua
 │       │   └── options.lua
 │       └── plugins/
+│           ├── theme.lua
 │           └── webdev.lua
 ├── eza/
 │   └── theme.yml
@@ -77,18 +80,22 @@ The script will:
   - `~/.config/eza`
   - `~/.zsh/plugins`
 - Symlink files:
-  - `zshrc` -> `~/.zshrc`
+  - `zshrc` -> `~/.config/dotfiles/zshrc`
   - `starship.toml` -> `~/.config/starship.toml`
   - `eza/theme.yml` -> `~/.config/eza/theme.yml`
   - `alacritty.toml` -> `~/.config/alacritty/alacritty.toml`
   - `tmux.conf` -> `~/.tmux.conf`
   - `nvim/` -> `~/.config/nvim`
+- Ensure `~/.zshrc` sources the dotfiles zsh config via a managed block:
+  - `# >>> dotfiles-zsh >>>`
+  - `[ -f "$HOME/.config/dotfiles/zshrc" ] && source "$HOME/.config/dotfiles/zshrc"`
+  - `# <<< dotfiles-zsh <<<`
 
 ## Existing file safety policy
 
 If a target file already exists, `install.sh` moves it to a timestamped backup:
 
-- `~/.zshrc.bak.YYYYMMDD-HHMMSS`
+- `~/.config/dotfiles/zshrc.bak.YYYYMMDD-HHMMSS`
 - `~/.config/starship.toml.bak.YYYYMMDD-HHMMSS`
 - `~/.config/eza/theme.yml.bak.YYYYMMDD-HHMMSS`
 - `~/.config/alacritty/alacritty.toml.bak.YYYYMMDD-HHMMSS`
@@ -96,6 +103,11 @@ If a target file already exists, `install.sh` moves it to a timestamped backup:
 - `~/.config/nvim.bak.YYYYMMDD-HHMMSS`
 
 Then it creates the new symlink.
+
+For `~/.zshrc` specifically:
+
+- If `~/.zshrc` is a symlink, installer backs it up and creates a regular `~/.zshrc` with the managed source block.
+- If `~/.zshrc` exists as a file, installer updates or appends the managed source block (does not replace unrelated lines).
 
 ## Ubuntu caveats
 
@@ -133,7 +145,7 @@ exec zsh
 
 For machine-specific config that should not be committed to dotfiles:
 
-- Zsh: `~/.zshrc.local` (auto-sourced by `~/.zshrc`)
+- Zsh: `~/.zshrc.local` (auto-sourced by `~/.config/dotfiles/zshrc`)
 - tmux: `~/.tmux.conf.local` (auto-sourced by `~/.tmux.conf`)
 - Neovim: `~/.config/nvim/lua/config/local.lua` (optional `pcall(require, "config.local")`)
 
@@ -179,7 +191,13 @@ Included web-dev extras:
 ## Uninstall / remove symlinks
 
 ```bash
-rm -f ~/.zshrc ~/.config/starship.toml ~/.config/eza/theme.yml ~/.config/alacritty/alacritty.toml ~/.config/alacritty/local-font.toml ~/.tmux.conf ~/.config/nvim
+rm -f ~/.config/dotfiles/zshrc ~/.config/starship.toml ~/.config/eza/theme.yml ~/.config/alacritty/alacritty.toml ~/.config/alacritty/local-font.toml ~/.tmux.conf ~/.config/nvim
+```
+
+Optional cleanup if you want to remove the managed include from `~/.zshrc` too:
+
+```bash
+sed -i '/^# >>> dotfiles-zsh >>>$/,/^# <<< dotfiles-zsh <<</d' ~/.zshrc
 ```
 
 Optionally restore from backups created by `install.sh`.

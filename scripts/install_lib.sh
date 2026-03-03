@@ -47,6 +47,76 @@ link_file() {
   fi
 }
 
+ensure_main_zshrc_sources_dotfiles() {
+  local dotfiles_zshrc="$1"
+  local main_zshrc="$HOME/.zshrc"
+  local start_marker="# >>> dotfiles-zsh >>>"
+  local end_marker="# <<< dotfiles-zsh <<<"
+  local block
+  block="$start_marker
+[ -f \"$dotfiles_zshrc\" ] && source \"$dotfiles_zshrc\"
+$end_marker"
+
+  if (( DRY_RUN == 1 )); then
+    if [[ -L "$main_zshrc" ]]; then
+      echo "[dry-run] Would replace symlinked $main_zshrc with a regular file containing dotfiles source block"
+    elif [[ -f "$main_zshrc" ]]; then
+      echo "[dry-run] Would upsert dotfiles source block in $main_zshrc"
+    else
+      echo "[dry-run] Would create $main_zshrc with dotfiles source block"
+    fi
+    return
+  fi
+
+  if [[ -L "$main_zshrc" ]]; then
+    backup_path "$main_zshrc"
+    printf '%s\n' "$block" > "$main_zshrc"
+    echo "Created regular $main_zshrc with dotfiles source block"
+    return
+  fi
+
+  if [[ ! -f "$main_zshrc" ]]; then
+    printf '%s\n' "$block" > "$main_zshrc"
+    echo "Created $main_zshrc with dotfiles source block"
+    return
+  fi
+
+  if grep -Fq "$start_marker" "$main_zshrc" && grep -Fq "$end_marker" "$main_zshrc"; then
+    local tmp_file
+    tmp_file="$(mktemp)"
+    awk -v start="$start_marker" -v end="$end_marker" -v block="$block" '
+      BEGIN { in_block = 0; replaced = 0 }
+      $0 == start {
+        if (!replaced) {
+          print block
+          replaced = 1
+        }
+        in_block = 1
+        next
+      }
+      $0 == end {
+        in_block = 0
+        next
+      }
+      !in_block { print }
+      END {
+        if (!replaced) {
+          if (NR > 0) print ""
+          print block
+        }
+      }
+    ' "$main_zshrc" > "$tmp_file"
+    mv "$tmp_file" "$main_zshrc"
+    echo "Updated dotfiles source block in $main_zshrc"
+  else
+    {
+      printf '\n'
+      printf '%s\n' "$block"
+    } >> "$main_zshrc"
+    echo "Appended dotfiles source block to $main_zshrc"
+  fi
+}
+
 install_apt_packages() {
   if ! command -v apt-get >/dev/null 2>&1; then
     echo "apt-get not found; skipping package install."
