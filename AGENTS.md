@@ -26,3 +26,8 @@ Before linking or generating a config, classify it:
 Use `./install.sh --server` for dev servers (no desktop UX assumptions):
 - Skips desktop-only terminal/font setup.
 - Keeps shell/tmux/nvim/codex setup.
+
+## Install Modes
+- `./install.sh --minimal` (alias `--apply-only`) must apply/render configs only.
+- `./install.sh` should orchestrate modular scripts, not embed all logic directly.
+- Personal tool bootstrapping must stay optional (`--with-personal-tools`), never forced.

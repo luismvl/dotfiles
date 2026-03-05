@@ -3,20 +3,48 @@ set -euo pipefail
 
 DRY_RUN=0
 INSTALL_PROFILE="desktop"
+APPLY_ONLY=0
+WITH_PERSONAL_TOOLS=0
+
+usage() {
+  cat <<'USAGE'
+Usage: ./install.sh [options]
+
+Options:
+  --dry-run             Print planned actions only
+  --desktop             Desktop profile (default)
+  --server              Dev-server profile (skip desktop-only system setup)
+  --minimal             Alias of --apply-only
+  --apply-only          Apply/render dotfiles config only (no apt/download/bootstrap)
+  --with-personal-tools Also run personal tools bootstrap (scripts/bootstrap_codex.sh)
+  -h, --help            Show this help
+USAGE
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run)
       DRY_RUN=1
       ;;
-    --server)
-      INSTALL_PROFILE="server"
-      ;;
     --desktop)
       INSTALL_PROFILE="desktop"
       ;;
+    --server)
+      INSTALL_PROFILE="server"
+      ;;
+    --minimal|--apply-only)
+      APPLY_ONLY=1
+      ;;
+    --with-personal-tools)
+      WITH_PERSONAL_TOOLS=1
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
     *)
       echo "Unknown argument: $1"
-      echo "Usage: ./install.sh [--dry-run] [--server|--desktop]"
+      usage
       exit 1
       ;;
   esac
@@ -26,46 +54,35 @@ done
 if (( DRY_RUN == 1 )); then
   echo "Running in dry-run mode (no changes will be made)."
 fi
-echo "Install profile: $INSTALL_PROFILE"
+
+echo "Install orchestrator"
+echo "  profile:             $INSTALL_PROFILE"
+echo "  apply-only/minimal:  $APPLY_ONLY"
+echo "  with personal tools: $WITH_PERSONAL_TOOLS"
 
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/install_lib.sh
-source "$REPO_DIR/scripts/install_lib.sh"
-
-run_cmd mkdir -p "$HOME/.config" "$HOME/.config/eza" "$HOME/.config/dotfiles" "$HOME/.zsh/plugins" "$HOME/.tmux/plugins" "$HOME/.codex"
-if [[ "$INSTALL_PROFILE" == "desktop" ]]; then
-  run_cmd mkdir -p "$HOME/.config/alacritty" "$HOME/.local/share/fonts"
+COMMON_ARGS=(--profile "$INSTALL_PROFILE")
+if (( DRY_RUN == 1 )); then
+  COMMON_ARGS+=(--dry-run)
 fi
 
-install_apt_packages "$INSTALL_PROFILE"
-install_zoxide
-install_starship
-ensure_neovim_min_version
-if [[ "$INSTALL_PROFILE" == "desktop" ]]; then
-  set_default_terminal_alacritty
-  install_caskaydia_nerd_font
-  FONT_FAMILY="$(detect_caskaydia_nerd_family)"
-  write_alacritty_local_font_override "$FONT_FAMILY"
+if (( APPLY_ONLY == 0 )); then
+  "$REPO_DIR/scripts/bootstrap_system.sh" "${COMMON_ARGS[@]}"
 else
-  echo "Server profile: skipping Alacritty default-terminal and font setup."
+  echo "Skipping system bootstrap (apply-only mode)."
 fi
 
-clone_plugin_if_missing "https://github.com/zsh-users/zsh-autosuggestions" "$HOME/.zsh/plugins/zsh-autosuggestions"
-clone_plugin_if_missing "https://github.com/zsh-users/zsh-history-substring-search" "$HOME/.zsh/plugins/zsh-history-substring-search"
-clone_plugin_if_missing "https://github.com/Aloxaf/fzf-tab" "$HOME/.zsh/plugins/fzf-tab"
-clone_plugin_if_missing "https://github.com/zsh-users/zsh-syntax-highlighting" "$HOME/.zsh/plugins/zsh-syntax-highlighting"
-install_tmux_tpm
+"$REPO_DIR/scripts/apply_dotfiles.sh" "${COMMON_ARGS[@]}"
 
-link_file "$REPO_DIR/zshrc" "$HOME/.config/dotfiles/zshrc"
-ensure_main_zshrc_sources_dotfiles "$HOME/.config/dotfiles/zshrc"
-link_file "$REPO_DIR/starship.toml" "$HOME/.config/starship.toml"
-link_file "$REPO_DIR/eza/theme.yml" "$HOME/.config/eza/theme.yml"
-if [[ "$INSTALL_PROFILE" == "desktop" ]]; then
-  link_file "$REPO_DIR/alacritty.toml" "$HOME/.config/alacritty/alacritty.toml"
+if (( WITH_PERSONAL_TOOLS == 1 )); then
+  PERSONAL_ARGS=()
+  if (( DRY_RUN == 1 )); then
+    PERSONAL_ARGS+=(--dry-run)
+  fi
+  "$REPO_DIR/scripts/bootstrap_codex.sh" "${PERSONAL_ARGS[@]}"
+else
+  echo "Skipping personal tools bootstrap."
 fi
-link_file "$REPO_DIR/tmux.conf" "$HOME/.tmux.conf"
-link_file "$REPO_DIR/nvim" "$HOME/.config/nvim"
-render_codex_config "$REPO_DIR/codex/config.base.toml" "$REPO_DIR/codex/config.local.env" "$HOME/.codex/config.toml"
 
 if [[ ! -s "$HOME/.nvm/nvm.sh" ]]; then
   echo "Note: nvm is not installed at $HOME/.nvm/nvm.sh."

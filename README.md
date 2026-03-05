@@ -11,7 +11,7 @@ Small, practical dotfiles repo to replicate this shell/tooling setup on Ubuntu.
 - tmux dev config (`tmux.conf`)
 - LazyVim Neovim config for web dev (`nvim/`)
 - Codex global config (rendered from `codex/config.base.toml`)
-- Install script for packages, plugins, and symlinks (`install.sh`)
+- Modular install scripts for system bootstrap, config apply, and optional personal tools
 
 ## File layout
 
@@ -41,6 +41,8 @@ dotfiles/
 ├── install.sh
 ├── scripts/
 │   ├── install_lib.sh
+│   ├── apply_dotfiles.sh
+│   ├── bootstrap_system.sh
 │   └── bootstrap_codex.sh
 └── README.md
 ```
@@ -60,6 +62,18 @@ Server/dev-only profile (no desktop assumptions):
 ./install.sh --server
 ```
 
+Minimal/apply-only mode (no apt, no downloads, no plugin/tool bootstrap):
+
+```bash
+./install.sh --minimal
+```
+
+Optional personal tools bootstrap in same run:
+
+```bash
+./install.sh --with-personal-tools
+```
+
 Dry-run (no changes, no installs):
 
 ```bash
@@ -71,6 +85,23 @@ Dry-run with server profile:
 ```bash
 ./install.sh --server --dry-run
 ```
+
+Dry-run with minimal mode:
+
+```bash
+./install.sh --minimal --dry-run
+```
+
+### Mode Matrix
+
+| Command | System bootstrap (`bootstrap_system.sh`) | Apply config (`apply_dotfiles.sh`) | Personal tools (`bootstrap_codex.sh`) |
+|---|---|---|---|
+| `./install.sh` | Yes (`desktop`) | Yes | No |
+| `./install.sh --server` | Yes (`server`) | Yes | No |
+| `./install.sh --minimal` | No | Yes | No |
+| `./install.sh --with-personal-tools` | Yes (`desktop`) | Yes | Yes |
+| `./install.sh --server --with-personal-tools` | Yes (`server`) | Yes | Yes |
+| `./install.sh --minimal --with-personal-tools` | No | Yes | Yes |
 
 Codex bootstrap (CLI + skills):
 
@@ -85,43 +116,27 @@ cp codex/skills.manifest.example codex/skills.manifest
 ./scripts/bootstrap_codex.sh
 ```
 
-The script will:
+`install.sh` now orchestrates three modules:
 
-- Install Ubuntu packages (when available via `apt`):
-  - `zsh`, `git`, `curl`, `neovim`, `build-essential`, `unzip`, `xclip`, `tree-sitter-cli`, `fzf`, `ripgrep`, `fd-find`, `bat`, `eza`, `alacritty`, `tmux`
-- Install `zoxide` (official install script)
-- Install `starship` (official install script)
-- Ensure Neovim is compatible with LazyVim:
-  - Requires `nvim >= 0.11.2`
-  - If missing or too old, installs latest Neovim tarball to `~/.local` and links `~/.local/bin/nvim`
-- Install Caskaydia Nerd Font from Nerd Fonts latest release tarball into:
-  - `~/.local/share/fonts/CaskaydiaCoveNerdFont` (always reinstall)
-- Detect installed Caskaydia Nerd Font family and generate:
-  - `~/.config/alacritty/local-font.toml`
-- Set Alacritty as default terminal:
-  - Ubuntu `25.04+`: writes `Alacritty.desktop` first in `~/.config/ubuntu-xdg-terminals.list`
-  - Older Ubuntu: uses `update-alternatives` for `x-terminal-emulator`
-- Clone Zsh plugins (if missing):
-  - `~/.zsh/plugins/zsh-autosuggestions`
-  - `~/.zsh/plugins/zsh-history-substring-search`
-  - `~/.zsh/plugins/fzf-tab`
-  - `~/.zsh/plugins/zsh-syntax-highlighting`
-- Create directories:
-  - `~/.config`
-  - `~/.config/eza`
-  - `~/.zsh/plugins`
-- Symlink files:
-  - `zshrc` -> `~/.config/dotfiles/zshrc`
-  - `starship.toml` -> `~/.config/starship.toml`
-  - `eza/theme.yml` -> `~/.config/eza/theme.yml`
-  - `alacritty.toml` -> `~/.config/alacritty/alacritty.toml`
-  - `tmux.conf` -> `~/.tmux.conf`
-  - `nvim/` -> `~/.config/nvim`
-  - Renders `~/.codex/config.toml` from `codex/config.base.toml` + optional `codex/config.local.env`
-- Ensure `~/.zshrc` sources the dotfiles zsh config via a managed block:
-  - `# >>> dotfiles-zsh >>>`
-  - `[ -f "$HOME/.config/dotfiles/zshrc" ] && source "$HOME/.config/dotfiles/zshrc"`
-  - `# <<< dotfiles-zsh <<<`
+- `scripts/bootstrap_system.sh`:
+  - apt packages, zoxide/starship/neovim
+  - desktop-only terminal/font setup when profile is desktop
+  - zsh/tmux plugin cloning
+- `scripts/apply_dotfiles.sh`:
+  - symlinks for zsh/starship/eza/tmux/nvim (+ alacritty on desktop)
+  - renders `~/.codex/config.toml` from `codex/config.base.toml` + optional `codex/config.local.env`
+  - ensures managed `~/.zshrc` include block
+- `scripts/bootstrap_codex.sh` (optional):
+  - Codex CLI bootstrap
+  - skills sync via `codex/skills.manifest`
+
+Run modules directly if needed:
+
+```bash
+./scripts/bootstrap_system.sh --profile server
+./scripts/apply_dotfiles.sh --profile server
+./scripts/bootstrap_codex.sh --dry-run
+```
 
 ## Existing file safety policy
 
