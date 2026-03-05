@@ -1,0 +1,13 @@
+# name|source|mode
+# mode: symlink | clone | copy
+
+# Local skills from ~/.agents (recommended for this machine setup)
+agent-browser|$HOME/.agents/skills/agent-browser|symlink
+find-skills|$HOME/.agents/skills/find-skills|symlink
+frontend-design|$HOME/.agents/skills/frontend-design|symlink
+ui-ux-pro-max|$HOME/.agents/skills/ui-ux-pro-max|symlink
+vercel-composition-patterns|$HOME/.agents/skills/vercel-composition-patterns|symlink
+
+# Optional examples
+# my-private-skill|git@github.com:your-org/your-skill.git|clone
+# local-skill-copy|$HOME/dev/skills/some-skill|copy

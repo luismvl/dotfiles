@@ -36,10 +36,12 @@ dotfiles/
 │   └── theme.yml
 ├── codex/
 │   ├── config.base.toml
-│   └── config.local.example.env
+│   ├── config.local.example.env
+│   └── skills.manifest.example
 ├── install.sh
 ├── scripts/
-│   └── install_lib.sh
+│   ├── install_lib.sh
+│   └── bootstrap_codex.sh
 └── README.md
 ```
 
@@ -68,6 +70,19 @@ Dry-run with server profile:
 
 ```bash
 ./install.sh --server --dry-run
+```
+
+Codex bootstrap (CLI + skills):
+
+```bash
+# one-time: create local skill manifest
+cp codex/skills.manifest.example codex/skills.manifest
+
+# inspect actions only
+./scripts/bootstrap_codex.sh --dry-run
+
+# apply
+./scripts/bootstrap_codex.sh
 ```
 
 The script will:
@@ -176,6 +191,9 @@ Codex notes:
 - Do not commit `~/.codex/skills` directories directly. Prefer committing:
   - `[[skills.config]]` entries in `codex/config.base.toml`
   - skill source repos or installer scripts if you want reproducible installs.
+- Skills install/sync is handled by `scripts/bootstrap_codex.sh` + `codex/skills.manifest`:
+  - `symlink` mode for local skill folders (fastest for dev machines)
+  - `clone` mode for Git skill repos (best for server reproducibility)
 
 Suggested local stacks completion example in `~/.zshrc.local`:
 

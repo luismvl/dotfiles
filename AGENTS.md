@@ -15,6 +15,7 @@ Never symlink a tracked file directly to a live config when that live config may
 - Neovim: `~/.config/nvim/lua/config/local.lua`
 - Alacritty font: `~/.config/alacritty/local-font.toml` (generated)
 - Codex: `codex/config.base.toml` + `codex/config.local.env` -> `~/.codex/config.toml`
+- Codex skills: `codex/skills.manifest` + `scripts/bootstrap_codex.sh` -> `~/.codex/skills/*`
 
 ## When Adding New Dotfiles
 Before linking or generating a config, classify it:
