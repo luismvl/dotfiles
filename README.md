@@ -10,6 +10,7 @@ Small, practical dotfiles repo to replicate this shell/tooling setup on Ubuntu.
 - Alacritty terminal config (`alacritty.toml`)
 - tmux dev config (`tmux.conf`)
 - LazyVim Neovim config for web dev (`nvim/`)
+- Codex global config (rendered from `codex/config.base.toml`)
 - Install script for packages, plugins, and symlinks (`install.sh`)
 
 ## File layout
@@ -33,6 +34,9 @@ dotfiles/
 │           └── webdev.lua
 ├── eza/
 │   └── theme.yml
+├── codex/
+│   ├── config.base.toml
+│   └── config.local.example.env
 ├── install.sh
 ├── scripts/
 │   └── install_lib.sh
@@ -48,10 +52,22 @@ chmod +x install.sh
 ./install.sh
 ```
 
+Server/dev-only profile (no desktop assumptions):
+
+```bash
+./install.sh --server
+```
+
 Dry-run (no changes, no installs):
 
 ```bash
 ./install.sh --dry-run
+```
+
+Dry-run with server profile:
+
+```bash
+./install.sh --server --dry-run
 ```
 
 The script will:
@@ -86,6 +102,7 @@ The script will:
   - `alacritty.toml` -> `~/.config/alacritty/alacritty.toml`
   - `tmux.conf` -> `~/.tmux.conf`
   - `nvim/` -> `~/.config/nvim`
+  - Renders `~/.codex/config.toml` from `codex/config.base.toml` + optional `codex/config.local.env`
 - Ensure `~/.zshrc` sources the dotfiles zsh config via a managed block:
   - `# >>> dotfiles-zsh >>>`
   - `[ -f "$HOME/.config/dotfiles/zshrc" ] && source "$HOME/.config/dotfiles/zshrc"`
@@ -101,6 +118,7 @@ If a target file already exists, `install.sh` moves it to a timestamped backup:
 - `~/.config/alacritty/alacritty.toml.bak.YYYYMMDD-HHMMSS`
 - `~/.tmux.conf.bak.YYYYMMDD-HHMMSS`
 - `~/.config/nvim.bak.YYYYMMDD-HHMMSS`
+- `~/.codex/config.toml.bak.YYYYMMDD-HHMMSS`
 
 Then it creates the new symlink.
 
@@ -148,6 +166,16 @@ For machine-specific config that should not be committed to dotfiles:
 - Zsh: `~/.zshrc.local` (auto-sourced by `~/.config/dotfiles/zshrc`)
 - tmux: `~/.tmux.conf.local` (auto-sourced by `~/.tmux.conf`)
 - Neovim: `~/.config/nvim/lua/config/local.lua` (optional `pcall(require, "config.local")`)
+- Codex: `dotfiles/codex/config.local.env` (do not commit; see `codex/config.local.example.env`)
+
+Codex notes:
+
+- `codex/config.base.toml` is the tracked global baseline (rules, MCP, behavior).
+- Put machine-specific or secret values in untracked `codex/config.local.env`.
+- `install.sh` renders the final `~/.codex/config.toml` automatically.
+- Do not commit `~/.codex/skills` directories directly. Prefer committing:
+  - `[[skills.config]]` entries in `codex/config.base.toml`
+  - skill source repos or installer scripts if you want reproducible installs.
 
 Suggested local stacks completion example in `~/.zshrc.local`:
 

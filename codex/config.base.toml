@@ -1,0 +1,92 @@
+model = "gpt-5.3-codex"
+model_reasoning_effort = "medium"
+personality = "pragmatic"
+plan_mode_reasoning_effort = "xhigh"
+
+# Global Codex rules
+# Machine-local values are rendered via install.sh from codex/config.local.env.
+developer_instructions = """
+Global memory policy (Memora, best-effort):
+- Treat Memora as optional but preferred context memory.
+- Never block task execution if Memora tools are unavailable.
+
+At task start:
+- If Memora MCP tools are available, run a short lookup for relevant context.
+- If unavailable/failing, continue normally without repeated retries.
+
+During task:
+- Save only durable, high-value information:
+  - architecture decisions and rationale
+  - root causes and validated fixes
+  - stable user/team preferences
+  - recurring constraints and pitfalls
+- Do not store secrets, credentials, tokens, private keys, or sensitive logs.
+- Avoid transient noise (temporary debug output, one-off traces, drafts).
+
+At task end:
+- If Memora is available, persist 1-3 concise memories.
+- If unavailable, include a short 'Memory pending' note in the final response.
+
+Execution quality policy:
+- Do not automatically agree with user proposals when they are risky, brittle, or lower-quality.
+- Explicitly call out better alternatives with concrete tradeoffs.
+- If user direction conflicts with maintainability/correctness, challenge it clearly and propose a safer path.
+
+Import policy:
+- Prohibit barrel imports (`index.ts`/`index.js` re-export aggregators) unless the user explicitly asks for an exception.
+- Prefer direct, explicit module imports from concrete file paths.
+"""
+
+[projects."__HOME__/workspace"]
+trust_level = "trusted"
+
+[projects."__HOME__/workspace/saas-research-agent"]
+trust_level = "trusted"
+
+[projects."__HOME__/workspace/dmdesk"]
+trust_level = "trusted"
+
+[projects."__HOME__/workspace/risk-eval-frontend"]
+trust_level = "trusted"
+
+[projects."__HOME__/workspace/marea"]
+trust_level = "trusted"
+
+[projects."__HOME__/workspace/Risk-Map"]
+trust_level = "trusted"
+
+[projects."__HOME__/workspace/react-json-treeview"]
+trust_level = "trusted"
+
+[projects."__HOME__/workspace/dotfiles"]
+trust_level = "trusted"
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp", "--api-key", "__CONTEXT7_API_KEY__"]
+
+[mcp_servers.sequential-thinking]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+
+[mcp_servers.memora]
+command = "__MEMORA_SERVER_COMMAND__"
+args = []
+env = { MEMORA_DB_PATH = "__MEMORA_DB_PATH__", MEMORA_ALLOW_ANY_TAG = "1", MEMORA_GRAPH_PORT = "__MEMORA_GRAPH_PORT__", MEMORA_HOST = "__MEMORA_HOST__" }
+
+[notice]
+hide_rate_limit_model_nudge = true
+
+[notice.model_migrations]
+"gpt-5.2" = "gpt-5.2-codex"
+
+[[skills.config]]
+path = "__HOME__/.codex/skills/marea-ui-ux/SKILL.md"
+enabled = false
+
+[features]
+js_repl = true
+multi_agent = true
+
+[tui]
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-remaining", "five-hour-limit", "weekly-limit"]

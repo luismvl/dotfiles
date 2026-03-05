@@ -118,6 +118,7 @@ $end_marker"
 }
 
 install_apt_packages() {
+  local profile="${1:-desktop}"
   if ! command -v apt-get >/dev/null 2>&1; then
     echo "apt-get not found; skipping package install."
     return
@@ -139,9 +140,12 @@ install_apt_packages() {
     fd-find
     bat
     eza
-    alacritty
     tmux
   )
+
+  if [[ "$profile" == "desktop" ]]; then
+    packages+=(alacritty)
+  fi
 
   local available=()
   local missing=()
@@ -162,6 +166,64 @@ install_apt_packages() {
   if (( ${#missing[@]} > 0 )); then
     echo "Packages not available in current apt sources: ${missing[*]}"
   fi
+}
+
+render_codex_config() {
+  local base_toml="$1"
+  local local_env="$2"
+  local output_toml="$3"
+
+  if [[ ! -f "$base_toml" ]]; then
+    warn_continue "Codex base config not found: $base_toml"
+    return 1
+  fi
+
+  # Machine-local overrides (optional, untracked).
+  if [[ -f "$local_env" ]]; then
+    if (( DRY_RUN == 1 )); then
+      echo "[dry-run] Would load machine-local Codex overrides from $local_env"
+    else
+      # shellcheck disable=SC1090
+      source "$local_env"
+    fi
+  fi
+
+  local context7_api_key memora_server_command memora_db_path memora_host memora_graph_port
+  context7_api_key="${CONTEXT7_API_KEY:-REPLACE_WITH_CONTEXT7_API_KEY}"
+  memora_server_command="${MEMORA_SERVER_COMMAND:-$HOME/.local/share/memora/venv/bin/memora-server}"
+  memora_db_path="${MEMORA_DB_PATH:-$HOME/.local/share/memora/memories.db}"
+  memora_host="${MEMORA_HOST:-0.0.0.0}"
+  memora_graph_port="${MEMORA_GRAPH_PORT:-8765}"
+
+  if (( DRY_RUN == 1 )); then
+    echo "[dry-run] Would render Codex config to $output_toml from $base_toml"
+    return 0
+  fi
+
+  local esc_home esc_context7 esc_memora_cmd esc_memora_db esc_memora_host esc_memora_graph
+  esc_home="$(printf '%s' "$HOME" | sed 's/[\\/&]/\\&/g')"
+  esc_context7="$(printf '%s' "$context7_api_key" | sed 's/[\\/&]/\\&/g')"
+  esc_memora_cmd="$(printf '%s' "$memora_server_command" | sed 's/[\\/&]/\\&/g')"
+  esc_memora_db="$(printf '%s' "$memora_db_path" | sed 's/[\\/&]/\\&/g')"
+  esc_memora_host="$(printf '%s' "$memora_host" | sed 's/[\\/&]/\\&/g')"
+  esc_memora_graph="$(printf '%s' "$memora_graph_port" | sed 's/[\\/&]/\\&/g')"
+
+  local tmp
+  tmp="$(mktemp)"
+  sed \
+    -e "s/__HOME__/$esc_home/g" \
+    -e "s/__CONTEXT7_API_KEY__/$esc_context7/g" \
+    -e "s/__MEMORA_SERVER_COMMAND__/$esc_memora_cmd/g" \
+    -e "s/__MEMORA_DB_PATH__/$esc_memora_db/g" \
+    -e "s/__MEMORA_HOST__/$esc_memora_host/g" \
+    -e "s/__MEMORA_GRAPH_PORT__/$esc_memora_graph/g" \
+    "$base_toml" > "$tmp"
+
+  backup_path "$output_toml"
+  mkdir -p "$(dirname "$output_toml")"
+  mv "$tmp" "$output_toml"
+  chmod 600 "$output_toml"
+  echo "Rendered $output_toml from base config."
 }
 
 install_neovim_latest() {
