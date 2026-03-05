@@ -18,6 +18,42 @@ Options:
   --apply-only          Apply/render dotfiles config only (no apt/download/bootstrap)
   --with-personal-tools Also run personal tools bootstrap (scripts/bootstrap_codex.sh)
   -h, --help            Show this help
+
+Mode matrix:
+  ./install.sh
+    - bootstrap_system: yes (desktop)
+    - apply_dotfiles:   yes
+    - bootstrap_codex:  no
+
+  ./install.sh --server
+    - bootstrap_system: yes (server)
+    - apply_dotfiles:   yes
+    - bootstrap_codex:  no
+
+  ./install.sh --minimal
+    - bootstrap_system: no
+    - apply_dotfiles:   yes
+    - bootstrap_codex:  no
+
+  ./install.sh --with-personal-tools
+    - bootstrap_system: yes (desktop)
+    - apply_dotfiles:   yes
+    - bootstrap_codex:  yes
+
+  ./install.sh --server --with-personal-tools
+    - bootstrap_system: yes (server)
+    - apply_dotfiles:   yes
+    - bootstrap_codex:  yes
+
+  ./install.sh --minimal --with-personal-tools
+    - bootstrap_system: no
+    - apply_dotfiles:   yes
+    - bootstrap_codex:  yes
+
+Examples:
+  ./install.sh --minimal
+  ./install.sh --server --dry-run
+  ./install.sh --minimal --with-personal-tools --dry-run
 USAGE
 }
 
