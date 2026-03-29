@@ -6,75 +6,63 @@ INSTALL_PROFILE="desktop"
 APPLY_ONLY=0
 WITH_PERSONAL_TOOLS=0
 
+yes_no() {
+  if (( $1 == 1 )); then
+    echo "yes"
+  else
+    echo "no"
+  fi
+}
+
 usage() {
   cat <<'USAGE'
-Usage: ./install.sh [options]
-
-Options:
-  --dry-run             Print planned actions only
-  --desktop             Desktop profile (default)
-  --server              Dev-server profile (skip desktop-only system setup)
-  --minimal             Alias of --apply-only
-  --apply-only          Apply/render dotfiles config only (no apt/download/bootstrap)
-  --with-personal-tools Also run personal tools bootstrap (scripts/bootstrap_codex.sh)
-  -h, --help            Show this help
-
-Mode matrix:
+Usage:
   ./install.sh
-    - bootstrap_system: yes (desktop)
-    - apply_dotfiles:   yes
-    - bootstrap_codex:  no
+  ./install.sh server
+  ./install.sh minimal
+  ./install.sh tools
+  ./install.sh server tools dry-run
 
-  ./install.sh --server
-    - bootstrap_system: yes (server)
-    - apply_dotfiles:   yes
-    - bootstrap_codex:  no
+Plain-English commands:
+  server      Run the server profile (skip desktop-only terminal/font setup)
+  minimal     Only apply dotfiles and render configs
+  tools       Also run the Codex/bootstrap tools step
+  dry-run     Show what would happen without changing anything
+  help        Show this help
 
-  ./install.sh --minimal
-    - bootstrap_system: no
-    - apply_dotfiles:   yes
-    - bootstrap_codex:  no
+Readable flags:
+  --server               Same as `server`
+  --desktop              Force the desktop profile
+  --minimal              Same as `minimal`
+  --tools                Same as `tools`
+  --dry-run              Same as `dry-run`
 
-  ./install.sh --with-personal-tools
-    - bootstrap_system: yes (desktop)
-    - apply_dotfiles:   yes
-    - bootstrap_codex:  yes
-
-  ./install.sh --server --with-personal-tools
-    - bootstrap_system: yes (server)
-    - apply_dotfiles:   yes
-    - bootstrap_codex:  yes
-
-  ./install.sh --minimal --with-personal-tools
-    - bootstrap_system: no
-    - apply_dotfiles:   yes
-    - bootstrap_codex:  yes
-
-Examples:
-  ./install.sh --minimal
-  ./install.sh --server --dry-run
-  ./install.sh --minimal --with-personal-tools --dry-run
+Older aliases still accepted:
+  --apply-only           Old name for `--minimal`
+  --personal-tools       Old name for `--tools`
+  --with-personal-tools  Older name for `--tools`
+  -h, --help
 USAGE
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dry-run)
+    dry|dry-run|--dry-run)
       DRY_RUN=1
       ;;
-    --desktop)
+    desktop|--desktop)
       INSTALL_PROFILE="desktop"
       ;;
-    --server)
+    server|--server)
       INSTALL_PROFILE="server"
       ;;
-    --minimal|--apply-only)
+    minimal|apply|apply-only|--minimal|--apply-only)
       APPLY_ONLY=1
       ;;
-    --with-personal-tools)
+    tools|--tools|personal-tools|--personal-tools|--with-personal-tools)
       WITH_PERSONAL_TOOLS=1
       ;;
-    -h|--help)
+    help|-h|--help)
       usage
       exit 0
       ;;
@@ -87,14 +75,12 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if (( DRY_RUN == 1 )); then
-  echo "Running in dry-run mode (no changes will be made)."
-fi
-
-echo "Install orchestrator"
-echo "  profile:             $INSTALL_PROFILE"
-echo "  apply-only/minimal:  $APPLY_ONLY"
-echo "  with personal tools: $WITH_PERSONAL_TOOLS"
+echo "Install plan"
+echo "  profile: $INSTALL_PROFILE"
+echo "  system setup: $(yes_no $(( APPLY_ONLY == 0 )))"
+echo "  apply config: yes"
+echo "  codex tools:  $(yes_no "$WITH_PERSONAL_TOOLS")"
+echo "  dry-run:      $(yes_no "$DRY_RUN")"
 
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMMON_ARGS=(--profile "$INSTALL_PROFILE")
@@ -105,7 +91,7 @@ fi
 if (( APPLY_ONLY == 0 )); then
   "$REPO_DIR/scripts/bootstrap_system.sh" "${COMMON_ARGS[@]}"
 else
-  echo "Skipping system bootstrap (apply-only mode)."
+  echo "Skipping system bootstrap (minimal mode)."
 fi
 
 "$REPO_DIR/scripts/apply_dotfiles.sh" "${COMMON_ARGS[@]}"
