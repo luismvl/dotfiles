@@ -29,6 +29,12 @@ The zsh config also sets terminal titles. Local shells show host/current
 directory, and `ssh user@host` changes the title to `ssh: host` until the SSH
 session exits. Alacritty allows this because `dynamic_title = true`.
 
+On WSL, terminal fonts are a Windows concern because Windows Terminal and
+Windows Alacritty are Windows applications. The bootstrap installs Caskaydia
+Nerd Font into the Windows user font directory, patches Windows Terminal with a
+`Dotfiles Muted` color scheme, and writes a matching Windows Alacritty config to
+`%APPDATA%\alacritty\alacritty.toml`.
+
 ## Editor
 
 - `nvim`: installed from the official Neovim release when Ubuntu's version is

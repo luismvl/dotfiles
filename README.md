@@ -82,6 +82,8 @@ There are no `server`, `desktop`, or `minimal` flags anymore.
 Chezmoi scripts detect what they can:
 
 - WSL and headless servers skip Alacritty/font desktop bootstrap.
+- WSL installs Caskaydia Nerd Font into Windows user fonts, applies a matching
+  Windows Terminal theme, and writes a Windows Alacritty config for future use.
 - Ubuntu desktop installs Alacritty and Caskaydia Nerd Font.
 - `zsh` is set as the login shell once if needed.
 - Bootstrap scripts are idempotent and re-run only when their script content

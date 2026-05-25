@@ -12,54 +12,316 @@ is_desktop_linux() {
   command -v gsettings >/dev/null 2>&1
 }
 
-if ! is_desktop_linux; then
-  echo "No desktop session detected; skipping Alacritty and font bootstrap."
-  exit 0
-fi
+install_windows_terminal_fonts_and_theme() {
+  if ! command -v powershell.exe >/dev/null 2>&1; then
+    echo "WSL detected, but powershell.exe is not available; skipping Windows font and terminal setup."
+    return 0
+  fi
 
-if command -v apt-get >/dev/null 2>&1; then
-  sudo apt-get update
-  sudo apt-get install -y alacritty fontconfig
-fi
+  local win_temp win_temp_wsl win_local_appdata win_cache_wsl ps_script font_workdir font_zip font_extract asset_url
+  win_temp="$(powershell.exe -NoProfile -Command '[IO.Path]::GetTempPath()' | tr -d '\r')"
+  win_local_appdata="$(powershell.exe -NoProfile -Command '$env:LOCALAPPDATA' | tr -d '\r')"
+  win_temp_wsl="$(wslpath -u "$win_temp")"
+  win_cache_wsl="$(wslpath -u "$win_local_appdata")/dotfiles/cache"
+  mkdir -p "$win_cache_wsl"
+  ps_script="$(mktemp -p "$win_temp_wsl" dotfiles-terminal-XXXXXX.ps1)"
+  font_workdir="$(mktemp -d -p "$win_temp_wsl" dotfiles-font-XXXXXX)"
+  font_zip="$win_cache_wsl/CascadiaCode.zip"
+  font_extract="$font_workdir/extract"
+  mkdir -p "$font_extract"
 
-install_dir="$HOME/.local/share/fonts/CaskaydiaCoveNerdFont"
-tmpdir="$(mktemp -d)"
-archive="$tmpdir/CascadiaCode.tar.xz"
-asset_url="$(curl -fsSL https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep -o 'https://[^"]*CascadiaCode.tar.xz' | head -n1 || true)"
-
-if [[ -z "$asset_url" ]]; then
-  rm -rf "$tmpdir"
-  echo "Warning: could not find CascadiaCode.tar.xz in Nerd Fonts latest release." >&2
-  exit 0
-fi
-
-curl -fL "$asset_url" -o "$archive"
-rm -rf "$install_dir"
-mkdir -p "$install_dir"
-tar -xJf "$archive" -C "$install_dir"
-rm -rf "$tmpdir"
-
-if command -v fc-cache >/dev/null 2>&1; then
-  fc-cache -f >/dev/null 2>&1 || true
-fi
-
-font_family="CaskaydiaCove Nerd Font"
-if command -v fc-list >/dev/null 2>&1; then
-  families="$(fc-list : family 2>/dev/null | tr ',' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | awk 'NF' | sort -u || true)"
-  for candidate in \
-    "CaskaydiaCove Nerd Font Mono" \
-    "CaskaydiaCove Nerd Font" \
-    "CascadiaCode Nerd Font Mono" \
-    "CascadiaCode Nerd Font"; do
-    if printf '%s\n' "$families" | grep -Fxq "$candidate"; then
-      font_family="$candidate"
-      break
+  if [[ ! -s "$font_zip" ]] || ! unzip -tq "$font_zip" >/dev/null 2>&1; then
+    asset_url="$(curl -fsSL https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep -o 'https://[^"]*CascadiaCode.zip' | head -n1 || true)"
+    if [[ -z "$asset_url" ]]; then
+      rm -rf "$font_workdir" "$ps_script"
+      echo "Warning: could not find CascadiaCode.zip in Nerd Fonts latest release." >&2
+      return 0
     fi
-  done
-fi
 
-mkdir -p "$HOME/.config/alacritty"
-cat > "$HOME/.config/alacritty/local-font.toml" <<EOF
+    curl -fL "$asset_url" -o "$font_zip.tmp"
+    mv "$font_zip.tmp" "$font_zip"
+  fi
+
+  unzip -q "$font_zip" -d "$font_extract"
+  local font_extract_win
+  font_extract_win="$(wslpath -w "$font_extract")"
+
+  cat > "$ps_script" <<'PS'
+param([Parameter(Mandatory = $true)][string]$FontExtractPath)
+
+$ErrorActionPreference = "Stop"
+
+$fontFace = "CaskaydiaCove Nerd Font Mono"
+$schemeName = "Dotfiles Muted"
+function Backup-File {
+  param([Parameter(Mandatory = $true)][string]$Path)
+  if (Test-Path $Path) {
+    $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    Copy-Item -LiteralPath $Path -Destination "$Path.bak.$stamp" -Force
+  }
+}
+
+function Set-JsonProperty {
+  param(
+    [Parameter(Mandatory = $true)][object]$Object,
+    [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)]$Value
+  )
+
+  if ($Object.PSObject.Properties.Name -contains $Name) {
+    $Object.$Name = $Value
+  } else {
+    $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
+  }
+}
+
+function Install-CaskaydiaFont {
+  $fontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
+  New-Item -ItemType Directory -Path $fontsDir -Force | Out-Null
+
+  if (-not $FontExtractPath -or -not (Test-Path $FontExtractPath)) {
+    throw "FontExtractPath is not set to an extracted font directory."
+  }
+
+  $fontFiles = Get-ChildItem -Path $FontExtractPath -Recurse -File |
+    Where-Object { $_.Extension -in ".ttf", ".otf" -and $_.Name -like "CaskaydiaCoveNerdFont*" }
+
+  foreach ($font in $fontFiles) {
+    $dest = Join-Path $fontsDir $font.Name
+    Copy-Item -LiteralPath $font.FullName -Destination $dest -Force
+    New-ItemProperty `
+      -Path "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts" `
+      -Name "$($font.BaseName) (TrueType)" `
+      -Value $font.Name `
+      -PropertyType String `
+      -Force | Out-Null
+  }
+
+  Write-Output "Installed Caskaydia Nerd Font into Windows user fonts."
+}
+
+function Update-WindowsTerminal {
+  $settingsPaths = @(
+    (Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"),
+    (Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json")
+  ) | Where-Object { Test-Path $_ }
+
+  if (-not $settingsPaths) {
+    Write-Output "Windows Terminal settings not found; skipping Windows Terminal theme."
+    return
+  }
+
+  $scheme = [ordered]@{
+    name = $schemeName
+    background = "#111417"
+    foreground = "#d3d8de"
+    cursorColor = "#d3d8de"
+    selectionBackground = "#2a3138"
+    black = "#161b20"
+    red = "#c97b7b"
+    green = "#87a987"
+    yellow = "#b6a47a"
+    blue = "#7f93ab"
+    purple = "#9a88b3"
+    cyan = "#7fa4a8"
+    white = "#c2c9d0"
+    brightBlack = "#2a3138"
+    brightRed = "#d88a8a"
+    brightGreen = "#95b895"
+    brightYellow = "#c4b387"
+    brightBlue = "#8da2bb"
+    brightPurple = "#a996c3"
+    brightCyan = "#8eb4b8"
+    brightWhite = "#d3d8de"
+  }
+
+  foreach ($settingsPath in $settingsPaths) {
+    try {
+      $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+    } catch {
+      Write-Warning "Could not parse $settingsPath as JSON; leaving it unchanged."
+      continue
+    }
+
+    Backup-File -Path $settingsPath
+
+    if (-not ($settings.PSObject.Properties.Name -contains "schemes") -or $null -eq $settings.schemes) {
+      Set-JsonProperty -Object $settings -Name "schemes" -Value @()
+    }
+
+    $schemes = @($settings.schemes | Where-Object { $_.name -ne $schemeName })
+    $schemes += [pscustomobject]$scheme
+    $settings.schemes = $schemes
+
+    if (-not ($settings.PSObject.Properties.Name -contains "profiles") -or $null -eq $settings.profiles) {
+      Set-JsonProperty -Object $settings -Name "profiles" -Value ([pscustomobject]@{})
+    }
+    if (-not ($settings.profiles.PSObject.Properties.Name -contains "defaults") -or $null -eq $settings.profiles.defaults) {
+      Set-JsonProperty -Object $settings.profiles -Name "defaults" -Value ([pscustomobject]@{})
+    }
+
+    Set-JsonProperty -Object $settings.profiles.defaults -Name "colorScheme" -Value $schemeName
+    Set-JsonProperty -Object $settings.profiles.defaults -Name "font" -Value ([pscustomobject]@{
+      face = $fontFace
+      size = 12
+    })
+    Set-JsonProperty -Object $settings.profiles.defaults -Name "opacity" -Value 92
+    Set-JsonProperty -Object $settings.profiles.defaults -Name "useAcrylic" -Value $false
+    Set-JsonProperty -Object $settings.profiles.defaults -Name "padding" -Value "8, 8, 8, 8"
+    Set-JsonProperty -Object $settings.profiles.defaults -Name "cursorShape" -Value "filledBox"
+
+    $settings | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $settingsPath -Encoding UTF8
+    Write-Output "Updated Windows Terminal settings: $settingsPath"
+  }
+}
+
+function Write-WindowsAlacrittyConfig {
+  $alacrittyDir = Join-Path $env:APPDATA "alacritty"
+  $alacrittyConfig = Join-Path $alacrittyDir "alacritty.toml"
+  New-Item -ItemType Directory -Path $alacrittyDir -Force | Out-Null
+  Backup-File -Path $alacrittyConfig
+
+  @'
+live_config_reload = true
+
+[window]
+dimensions = { columns = 160, lines = 60 }
+padding = { x = 8, y = 8 }
+opacity = 0.92
+title = "WSL"
+dynamic_title = true
+decorations = "Full"
+
+[scrolling]
+history = 100000
+multiplier = 3
+
+[selection]
+save_to_clipboard = true
+
+[cursor]
+unfocused_hollow = true
+style = { shape = "Block", blinking = "Off" }
+
+[font]
+size = 12.0
+
+[font.normal]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Regular"
+
+[font.bold]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Bold"
+
+[font.italic]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Italic"
+
+[font.bold_italic]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Bold Italic"
+
+[terminal]
+shell = { program = "wsl.exe", args = ["~"] }
+
+[colors.primary]
+background = "#111417"
+foreground = "#d3d8de"
+
+[colors.cursor]
+text = "#111417"
+cursor = "#d3d8de"
+
+[colors.selection]
+text = "#d3d8de"
+background = "#2a3138"
+
+[colors.normal]
+black = "#161b20"
+red = "#c97b7b"
+green = "#87a987"
+yellow = "#b6a47a"
+blue = "#7f93ab"
+magenta = "#9a88b3"
+cyan = "#7fa4a8"
+white = "#c2c9d0"
+
+[colors.bright]
+black = "#2a3138"
+red = "#d88a8a"
+green = "#95b895"
+yellow = "#c4b387"
+blue = "#8da2bb"
+magenta = "#a996c3"
+cyan = "#8eb4b8"
+white = "#d3d8de"
+
+[keyboard]
+bindings = [
+  { key = "Equals", mods = "Control", action = "IncreaseFontSize" },
+  { key = "Plus", mods = "Control", action = "IncreaseFontSize" },
+  { key = "Minus", mods = "Control", action = "DecreaseFontSize" },
+  { key = "Key0", mods = "Control", action = "ResetFontSize" },
+]
+'@ | Set-Content -LiteralPath $alacrittyConfig -Encoding UTF8
+
+  Write-Output "Wrote Windows Alacritty config: $alacrittyConfig"
+}
+
+Install-CaskaydiaFont
+Update-WindowsTerminal
+Write-WindowsAlacrittyConfig
+PS
+
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w "$ps_script")" "$font_extract_win"
+  rm -rf "$font_workdir" "$ps_script"
+}
+
+install_linux_desktop_font_and_alacritty() {
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update
+    sudo apt-get install -y alacritty fontconfig
+  fi
+
+  install_dir="$HOME/.local/share/fonts/CaskaydiaCoveNerdFont"
+  tmpdir="$(mktemp -d)"
+  archive="$tmpdir/CascadiaCode.tar.xz"
+  asset_url="$(curl -fsSL https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep -o 'https://[^"]*CascadiaCode.tar.xz' | head -n1 || true)"
+
+  if [[ -z "$asset_url" ]]; then
+    rm -rf "$tmpdir"
+    echo "Warning: could not find CascadiaCode.tar.xz in Nerd Fonts latest release." >&2
+    return 0
+  fi
+
+  curl -fL "$asset_url" -o "$archive"
+  rm -rf "$install_dir"
+  mkdir -p "$install_dir"
+  tar -xJf "$archive" -C "$install_dir"
+  rm -rf "$tmpdir"
+
+  if command -v fc-cache >/dev/null 2>&1; then
+    fc-cache -f >/dev/null 2>&1 || true
+  fi
+
+  font_family="CaskaydiaCove Nerd Font"
+  if command -v fc-list >/dev/null 2>&1; then
+    families="$(fc-list : family 2>/dev/null | tr ',' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | awk 'NF' | sort -u || true)"
+    for candidate in \
+      "CaskaydiaCove Nerd Font Mono" \
+      "CaskaydiaCove Nerd Font" \
+      "CascadiaCode Nerd Font Mono" \
+      "CascadiaCode Nerd Font"; do
+      if printf '%s\n' "$families" | grep -Fxq "$candidate"; then
+        font_family="$candidate"
+        break
+      fi
+    done
+  fi
+
+  mkdir -p "$HOME/.config/alacritty"
+  cat > "$HOME/.config/alacritty/local-font.toml" <<EOF
 [font]
 size = 12.0
 
@@ -80,5 +342,17 @@ family = "$font_family"
 style = "Bold Italic"
 EOF
 
-echo "Installed Caskaydia Nerd Font and wrote Alacritty local font override."
+  echo "Installed Caskaydia Nerd Font and wrote Alacritty local font override."
+}
+
+if is_wsl; then
+  install_windows_terminal_fonts_and_theme
+  exit 0
+fi
+
+if is_desktop_linux; then
+  install_linux_desktop_font_and_alacritty
+else
+  echo "No desktop session detected; skipping Alacritty and font bootstrap."
+fi
 {{ end -}}
