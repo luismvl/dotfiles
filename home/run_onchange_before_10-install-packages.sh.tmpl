@@ -1,0 +1,62 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v apt-get >/dev/null 2>&1; then
+  echo "apt-get not found; skipping Ubuntu package bootstrap."
+  exit 0
+fi
+
+sudo apt-get update
+
+packages=(
+  zsh
+  git
+  curl
+  ca-certificates
+  build-essential
+  pkg-config
+  unzip
+  tmux
+  fzf
+  ripgrep
+  fd-find
+  bat
+  eza
+  tree-sitter-cli
+  jq
+  shellcheck
+  shfmt
+  direnv
+  git-delta
+  gh
+  golang-go
+  python3
+  python3-venv
+  python3-dev
+  python3-pip
+  pipx
+  openjdk-21-jdk
+  maven
+)
+
+available=()
+missing=()
+
+for package in "${packages[@]}"; do
+  if apt-cache show "$package" >/dev/null 2>&1; then
+    available+=("$package")
+  else
+    missing+=("$package")
+  fi
+done
+
+if (( ${#available[@]} > 0 )); then
+  sudo apt-get install -y "${available[@]}"
+fi
+
+if (( ${#missing[@]} > 0 )); then
+  echo "Packages not available in current apt sources: ${missing[*]}"
+fi
+
+{{ end -}}

@@ -1,0 +1,222 @@
+export ZSH="$HOME/.zsh"
+
+# Keep user-installed tools first, and remove app-internal helper paths that can
+# shadow normal system tools in inherited environments.
+typeset -U path PATH
+export BUN_INSTALL="$HOME/.bun"
+path=("$BUN_INSTALL/bin" "$HOME/.local/bin" $path)
+path=(${path:#*node_modules/@openai/codex*})
+path=(${path:#*codex-path*})
+export PATH
+
+# -----------------------------
+# Core shell behavior
+# -----------------------------
+
+HISTSIZE=10000
+SAVEHIST=10000
+HISTFILE="$HOME/.zsh_history"
+
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+setopt HIST_REDUCE_BLANKS
+setopt EXTENDED_HISTORY
+
+setopt AUTO_CD
+setopt INTERACTIVE_COMMENTS
+
+bindkey -v
+
+# -----------------------------
+# Completion
+# -----------------------------
+
+autoload -Uz compinit
+compinit
+
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' completer _extensions _complete _approximate
+zstyle ':completion:*:approximate:*' max-errors 1 numeric
+
+# -----------------------------
+# Word movement / deletion
+# -----------------------------
+
+bindkey '^[[1;5D' backward-word
+bindkey '^[[1;5C' forward-word
+
+bindkey '^[^[[D' backward-word
+bindkey '^[^[[C' forward-word
+bindkey '^[b' backward-word
+bindkey '^[f' forward-word
+
+bindkey '^H' backward-kill-word
+bindkey '^[[8;5u' backward-kill-word
+bindkey '^[[127;5u' backward-kill-word
+
+bindkey '^[[3;5~' kill-word
+
+bindkey -M viins '^[[1;5A' up-line-or-history
+bindkey -M viins '^[[1;5B' down-line-or-history
+bindkey -M main  '^[[1;5A' up-line-or-history
+bindkey -M main  '^[[1;5B' down-line-or-history
+
+# -----------------------------
+# External tools
+# -----------------------------
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
+command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"
+
+[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ] && source /usr/share/doc/fzf/examples/key-bindings.zsh
+[ -f /usr/share/doc/fzf/examples/completion.zsh ] && source /usr/share/doc/fzf/examples/completion.zsh
+
+# -----------------------------
+# Aliases
+# -----------------------------
+
+if command -v eza >/dev/null 2>&1; then
+  alias ls='eza --icons=auto'
+  alias ll='eza -lh --icons=auto'
+  alias la='eza -lah --icons=auto'
+  alias lt='eza --tree --level=2 --icons=auto'
+  alias lsa='eza -a --icons=auto'
+  alias lta='eza --tree --level=2 -a --icons=auto'
+else
+  alias ll='ls -lh'
+  alias la='ls -lah'
+fi
+
+if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+  alias fd='fdfind'
+fi
+
+if ! command -v bat >/dev/null 2>&1 && command -v batcat >/dev/null 2>&1; then
+  alias bat='batcat'
+fi
+
+# -----------------------------
+# Functions
+# -----------------------------
+
+_dotfiles_source_if_exists() {
+  [[ -r "$1" ]] && source "$1"
+}
+
+ff() {
+  local file preview
+  preview='sed -n "1,200p" {}'
+
+  if command -v batcat >/dev/null 2>&1; then
+    preview='batcat --style=numbers --color=always --line-range=:200 {} 2>/dev/null || sed -n "1,200p" {}'
+  elif command -v bat >/dev/null 2>&1; then
+    preview='bat --style=numbers --color=always --line-range=:200 {} 2>/dev/null || sed -n "1,200p" {}'
+  fi
+
+  if command -v fd >/dev/null 2>&1; then
+    file=$(fd --type f --hidden --follow --exclude .git 2>/dev/null | fzf --preview "$preview")
+  elif command -v fdfind >/dev/null 2>&1; then
+    file=$(fdfind --type f --hidden --follow --exclude .git 2>/dev/null | fzf --preview "$preview")
+  else
+    file=$(find . -type f 2>/dev/null | sed 's|^\./||' | fzf --preview "$preview")
+  fi
+
+  [[ -n "$file" ]] && printf '%s\n' "$file"
+}
+
+_dotfiles_set_terminal_title() {
+  [[ -t 1 ]] || return
+  print -n -- $'\e]0;'"$*"$'\a'
+}
+
+_dotfiles_precmd_title() {
+  local dir="${PWD/#$HOME/~}"
+  _dotfiles_set_terminal_title "${USER}@${HOST%%.*}: $dir"
+}
+
+_dotfiles_ssh_title_target() {
+  local arg target="" skip_next=0
+  for arg in "$@"; do
+    if (( skip_next )); then
+      skip_next=0
+      continue
+    fi
+
+    case "$arg" in
+      -b|-c|-D|-E|-e|-F|-I|-i|-J|-L|-l|-m|-O|-o|-p|-Q|-R|-S|-W|-w)
+        skip_next=1
+        ;;
+      --)
+        ;;
+      -*)
+        ;;
+      *)
+        target="$arg"
+        ;;
+    esac
+  done
+
+  target="${target##*@}"
+  target="${target%%:*}"
+  printf '%s\n' "$target"
+}
+
+ssh() {
+  local target status
+  target="$(_dotfiles_ssh_title_target "$@")"
+  [[ -n "$target" ]] && _dotfiles_set_terminal_title "ssh: $target"
+  command ssh "$@"
+  status=$?
+  _dotfiles_precmd_title
+  return "$status"
+}
+
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _dotfiles_precmd_title
+
+# -----------------------------
+# Plugins
+# -----------------------------
+
+_dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+if _dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh"; then
+  bindkey '^[[A' history-substring-search-up
+  bindkey '^[[B' history-substring-search-down
+  bindkey '^[OA' history-substring-search-up
+  bindkey '^[OB' history-substring-search-down
+
+  bindkey -M viins '^[[A' history-substring-search-up
+  bindkey -M viins '^[[B' history-substring-search-down
+  bindkey -M viins '^[OA' history-substring-search-up
+  bindkey -M viins '^[OB' history-substring-search-down
+
+  bindkey -M main '^[[A' history-substring-search-up
+  bindkey -M main '^[[B' history-substring-search-down
+  bindkey -M main '^[OA' history-substring-search-up
+  bindkey -M main '^[OB' history-substring-search-down
+fi
+
+_dotfiles_source_if_exists "$HOME/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
+_dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# -----------------------------
+# Prompt
+# -----------------------------
+
+command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
+
+# Bun completions
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# Machine-local overrides (not tracked in dotfiles repo)
+[[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"

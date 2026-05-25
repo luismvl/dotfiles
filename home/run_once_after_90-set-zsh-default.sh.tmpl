@@ -1,0 +1,24 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v zsh >/dev/null 2>&1; then
+  echo "zsh is not installed; skipping default-shell setup."
+  exit 0
+fi
+
+zsh_path="$(command -v zsh)"
+current_shell="$(getent passwd "$USER" | cut -d: -f7 || true)"
+
+if [[ "$current_shell" == "$zsh_path" ]]; then
+  echo "zsh is already the login shell."
+  exit 0
+fi
+
+if ! grep -Fxq "$zsh_path" /etc/shells; then
+  echo "$zsh_path" | sudo tee -a /etc/shells >/dev/null
+fi
+
+chsh -s "$zsh_path"
+echo "Changed login shell to $zsh_path. Restart the terminal or WSL session."
+{{ end -}}

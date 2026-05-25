@@ -1,33 +1,51 @@
 # Dotfiles Agent Policy
 
-## Config Pattern (Mandatory)
-For any config that can contain secrets or machine-specific values, use this pattern:
+## Chezmoi Layout
 
-1. **Tracked base file** in repo (`*.base.*`) with placeholders/defaults.
-2. **Untracked local file** (`*.local.*`) per machine with secrets/overrides.
-3. **Generated final file** at install/apply time.
+This repo is a chezmoi source repo.
 
-Never symlink a tracked file directly to a live config when that live config may be edited with secrets.
+- `.chezmoiroot` points to `home/`.
+- Managed home files live under `home/` using chezmoi source names.
+- Do not reintroduce `install.sh`, custom install modes, or a wrapper unless the
+  user explicitly asks for one.
+- Prefer native chezmoi commands: `chezmoi diff`, `chezmoi apply`,
+  `chezmoi update`, and `chezmoi cd`.
 
-## Existing Local-Override Pattern
+## Config Pattern
+
+For any config that can contain secrets or machine-specific values, use this
+pattern:
+
+1. Tracked portable base/defaults in the repo.
+2. Untracked local file per machine with secrets/overrides.
+3. Generated final file only when needed.
+
+Never manage a live config that is expected to contain secrets.
+
+## Existing Local-Only Files
+
 - Zsh: `~/.zshrc.local`
 - tmux: `~/.tmux.conf.local`
 - Neovim: `~/.config/nvim/lua/config/local.lua`
 - Alacritty font: `~/.config/alacritty/local-font.toml` (generated)
-- Codex: `codex/config.base.toml` + `codex/config.local.env` -> `~/.codex/config.toml`
-- Codex skills: `codex/skills.manifest` + `scripts/bootstrap_codex.sh` -> `~/.codex/skills/*`
+- Codex: `~/.codex/config.toml` (unmanaged)
+
+Codex setup is intentionally out of scope for this repo.
+
+## Bootstrap Policy
+
+- Use chezmoi `run_once_` or `run_onchange_` scripts for bootstrap work.
+- Scripts must be idempotent.
+- Scripts must skip gracefully when the platform does not apply.
+- WSL and headless servers must skip desktop-only terminal/font work.
+- Personal/secret-bearing tools must not be forced.
 
 ## When Adding New Dotfiles
-Before linking or generating a config, classify it:
-- **Portable/static**: safe to symlink directly.
-- **Machine-specific or secret-bearing**: must use base+local+generated pattern.
 
-## Server Profile
-Use `./install.sh --server` for dev servers (no desktop UX assumptions):
-- Skips desktop-only terminal/font setup.
-- Keeps shell/tmux/nvim/codex setup.
+Before managing a new config, classify it:
 
-## Install Modes
-- `./install.sh --minimal` (alias `--apply-only`) must apply/render configs only.
-- `./install.sh` should orchestrate modular scripts, not embed all logic directly.
-- Personal tool bootstrapping must stay optional (`--with-personal-tools`), never forced.
+- Portable/static: safe for chezmoi to manage directly.
+- Machine-specific or secret-bearing: use local override or generated output.
+
+Update `README.md` and `docs/tools.md` when changing user-facing setup behavior
+or installed tooling.

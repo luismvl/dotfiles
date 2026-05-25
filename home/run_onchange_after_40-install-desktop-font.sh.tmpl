@@ -1,0 +1,84 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+is_wsl() {
+  grep -qi microsoft /proc/version 2>/dev/null
+}
+
+is_desktop_linux() {
+  is_wsl && return 1
+  [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && return 0
+  command -v gsettings >/dev/null 2>&1
+}
+
+if ! is_desktop_linux; then
+  echo "No desktop session detected; skipping Alacritty and font bootstrap."
+  exit 0
+fi
+
+if command -v apt-get >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y alacritty fontconfig
+fi
+
+install_dir="$HOME/.local/share/fonts/CaskaydiaCoveNerdFont"
+tmpdir="$(mktemp -d)"
+archive="$tmpdir/CascadiaCode.tar.xz"
+asset_url="$(curl -fsSL https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep -o 'https://[^"]*CascadiaCode.tar.xz' | head -n1 || true)"
+
+if [[ -z "$asset_url" ]]; then
+  rm -rf "$tmpdir"
+  echo "Warning: could not find CascadiaCode.tar.xz in Nerd Fonts latest release." >&2
+  exit 0
+fi
+
+curl -fL "$asset_url" -o "$archive"
+rm -rf "$install_dir"
+mkdir -p "$install_dir"
+tar -xJf "$archive" -C "$install_dir"
+rm -rf "$tmpdir"
+
+if command -v fc-cache >/dev/null 2>&1; then
+  fc-cache -f >/dev/null 2>&1 || true
+fi
+
+font_family="CaskaydiaCove Nerd Font"
+if command -v fc-list >/dev/null 2>&1; then
+  families="$(fc-list : family 2>/dev/null | tr ',' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | awk 'NF' | sort -u || true)"
+  for candidate in \
+    "CaskaydiaCove Nerd Font Mono" \
+    "CaskaydiaCove Nerd Font" \
+    "CascadiaCode Nerd Font Mono" \
+    "CascadiaCode Nerd Font"; do
+    if printf '%s\n' "$families" | grep -Fxq "$candidate"; then
+      font_family="$candidate"
+      break
+    fi
+  done
+fi
+
+mkdir -p "$HOME/.config/alacritty"
+cat > "$HOME/.config/alacritty/local-font.toml" <<EOF
+[font]
+size = 12.0
+
+[font.normal]
+family = "$font_family"
+style = "Regular"
+
+[font.bold]
+family = "$font_family"
+style = "Bold"
+
+[font.italic]
+family = "$font_family"
+style = "Italic"
+
+[font.bold_italic]
+family = "$font_family"
+style = "Bold Italic"
+EOF
+
+echo "Installed Caskaydia Nerd Font and wrote Alacritty local font override."
+{{ end -}}

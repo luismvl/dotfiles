@@ -1,0 +1,163 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+export PATH="$HOME/.local/bin:$HOME/.bun/bin:$PATH"
+mkdir -p "$HOME/.local/bin"
+
+warn() {
+  echo "Warning: $*" >&2
+}
+
+backup_path() {
+  local target="$1"
+  if [[ -e "$target" || -L "$target" ]]; then
+    local backup="${target}.bak.$(date +%Y%m%d-%H%M%S)"
+    mv "$target" "$backup"
+    echo "Backed up $target -> $backup"
+  fi
+}
+
+install_starship() {
+  if command -v starship >/dev/null 2>&1; then
+    echo "starship already installed"
+    return
+  fi
+
+  curl -fsSL https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
+}
+
+install_zoxide() {
+  if command -v zoxide >/dev/null 2>&1; then
+    echo "zoxide already installed"
+    return
+  fi
+
+  curl -fsSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh -s -- --bin-dir "$HOME/.local/bin"
+}
+
+install_uv() {
+  if command -v uv >/dev/null 2>&1; then
+    echo "uv already installed"
+    return
+  fi
+
+  curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 UV_INSTALL_DIR="$HOME/.local/bin" sh
+}
+
+install_neovim_latest() {
+  local required="0.11.2"
+  local current=""
+
+  if command -v nvim >/dev/null 2>&1; then
+    current="$(nvim --version 2>/dev/null | head -n1 | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)"
+  fi
+
+  if [[ -n "$current" ]] && command -v dpkg >/dev/null 2>&1 && dpkg --compare-versions "$current" ge "$required"; then
+    echo "Neovim version $current is compatible"
+    return
+  fi
+
+  local asset_name
+  case "$(uname -m)" in
+    x86_64|amd64)
+      asset_name="nvim-linux-x86_64.tar.gz"
+      ;;
+    aarch64|arm64)
+      asset_name="nvim-linux-arm64.tar.gz"
+      ;;
+    *)
+      warn "Unsupported architecture for Neovim tarball: $(uname -m)"
+      return
+      ;;
+  esac
+
+  local tmpdir archive extract_dir extracted_dir url
+  tmpdir="$(mktemp -d)"
+  archive="$tmpdir/$asset_name"
+  extract_dir="$HOME/.local"
+  extracted_dir="${asset_name%.tar.gz}"
+  url="https://github.com/neovim/neovim/releases/latest/download/$asset_name"
+
+  curl -fL "$url" -o "$archive"
+  rm -rf "$extract_dir/nvim-linux-x86_64" "$extract_dir/nvim-linux-arm64"
+  tar -xzf "$archive" -C "$extract_dir"
+  ln -sfn "$extract_dir/$extracted_dir/bin/nvim" "$HOME/.local/bin/nvim"
+  rm -rf "$tmpdir"
+  echo "Installed Neovim latest to $extract_dir/$extracted_dir"
+}
+
+install_nvm_and_node() {
+  export NVM_DIR="$HOME/.nvm"
+  local nvm_version="v0.40.4"
+
+  if [[ ! -d "$NVM_DIR/.git" ]]; then
+    backup_path "$NVM_DIR"
+    git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+  fi
+
+  git -C "$NVM_DIR" fetch --tags --quiet
+  git -C "$NVM_DIR" checkout --quiet "$nvm_version"
+
+  # shellcheck disable=SC1091
+  source "$NVM_DIR/nvm.sh"
+  nvm install --lts
+  nvm alias default 'lts/*'
+  nvm use default
+
+  if command -v corepack >/dev/null 2>&1; then
+    corepack enable
+    corepack prepare pnpm@latest --activate
+  else
+    warn "corepack not found after Node install; pnpm was not activated."
+  fi
+}
+
+install_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    echo "bun already installed"
+    return
+  fi
+
+  local asset_name extracted_dir tmpdir archive url
+  case "$(uname -m)" in
+    x86_64|amd64)
+      asset_name="bun-linux-x64.zip"
+      extracted_dir="bun-linux-x64"
+      ;;
+    aarch64|arm64)
+      asset_name="bun-linux-aarch64.zip"
+      extracted_dir="bun-linux-aarch64"
+      ;;
+    *)
+      warn "Unsupported architecture for Bun: $(uname -m)"
+      return
+      ;;
+  esac
+
+  tmpdir="$(mktemp -d)"
+  archive="$tmpdir/$asset_name"
+  url="$(curl -fsSL https://api.github.com/repos/oven-sh/bun/releases/latest | grep -o "https://[^\"]*$asset_name" | head -n1 || true)"
+
+  if [[ -z "$url" ]]; then
+    rm -rf "$tmpdir"
+    warn "Could not find Bun release asset: $asset_name"
+    return
+  fi
+
+  curl -fL "$url" -o "$archive"
+  unzip -q "$archive" -d "$tmpdir"
+  mkdir -p "$HOME/.bun/bin"
+  install -m 0755 "$tmpdir/$extracted_dir/bun" "$HOME/.bun/bin/bun"
+  ln -sfn bun "$HOME/.bun/bin/bunx"
+  rm -rf "$tmpdir"
+  echo "Installed Bun to $HOME/.bun/bin/bun"
+}
+
+install_starship
+install_zoxide
+install_uv
+install_neovim_latest
+install_nvm_and_node
+install_bun
+{{ end -}}

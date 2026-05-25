@@ -1,3 +1,6 @@
-# Codex local overrides and secrets
-codex/config.local.env
-codex/skills.manifest
+# Machine-local scratch files
+*.local
+*.local.*
+
+# Chezmoi local state belongs under ~/.local/share/chezmoi, not in this repo.
+.chezmoistate*
