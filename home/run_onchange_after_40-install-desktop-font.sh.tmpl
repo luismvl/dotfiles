@@ -50,8 +50,9 @@ install_windows_terminal_fonts_and_theme() {
 param([Parameter(Mandatory = $true)][string]$FontExtractPath)
 
 $ErrorActionPreference = "Stop"
+Add-Type -AssemblyName System.Drawing
 
-$fontFace = "CaskaydiaCove Nerd Font Mono"
+$fontFace = "CaskaydiaCove NFM"
 $schemeName = "Dotfiles Muted"
 function Backup-File {
   param([Parameter(Mandatory = $true)][string]$Path)
@@ -75,6 +76,22 @@ function Set-JsonProperty {
   }
 }
 
+function Get-FontStyleLabel {
+  param([Parameter(Mandatory = $true)][string]$Name)
+  if ($Name -match "BoldItalic") { return "Bold Italic" }
+  if ($Name -match "ExtraLightItalic") { return "ExtraLight Italic" }
+  if ($Name -match "SemiLightItalic") { return "SemiLight Italic" }
+  if ($Name -match "SemiBoldItalic") { return "SemiBold Italic" }
+  if ($Name -match "LightItalic") { return "Light Italic" }
+  if ($Name -match "Italic") { return "Italic" }
+  if ($Name -match "Bold") { return "Bold" }
+  if ($Name -match "ExtraLight") { return "ExtraLight" }
+  if ($Name -match "SemiLight") { return "SemiLight" }
+  if ($Name -match "SemiBold") { return "SemiBold" }
+  if ($Name -match "Light") { return "Light" }
+  return "Regular"
+}
+
 function Install-CaskaydiaFont {
   $fontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
   New-Item -ItemType Directory -Path $fontsDir -Force | Out-Null
@@ -84,18 +101,36 @@ function Install-CaskaydiaFont {
   }
 
   $fontFiles = Get-ChildItem -Path $FontExtractPath -Recurse -File |
-    Where-Object { $_.Extension -in ".ttf", ".otf" -and $_.Name -like "CaskaydiaCoveNerdFont*" }
+    Where-Object { $_.Extension -in ".ttf", ".otf" -and $_.Name -like "CaskaydiaCoveNerdFontMono-*" }
+
+  Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts" |
+    Get-Member -MemberType NoteProperty |
+    Where-Object { $_.Name -like "CaskaydiaCove*" } |
+    ForEach-Object {
+      Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts" -Name $_.Name -ErrorAction SilentlyContinue
+    }
 
   foreach ($font in $fontFiles) {
     $dest = Join-Path $fontsDir $font.Name
     Copy-Item -LiteralPath $font.FullName -Destination $dest -Force
+    $privateFonts = New-Object System.Drawing.Text.PrivateFontCollection
+    $privateFonts.AddFontFile($dest)
+    $family = $privateFonts.Families[0].Name
+    $style = Get-FontStyleLabel $font.BaseName
+    $registryName = if ($family -eq $fontFace -and $style -ne "Regular") { "$family $style (TrueType)" } else { "$family (TrueType)" }
     New-ItemProperty `
       -Path "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts" `
-      -Name "$($font.BaseName) (TrueType)" `
-      -Value $font.Name `
+      -Name "$registryName" `
+      -Value "$dest" `
       -PropertyType String `
       -Force | Out-Null
+    $privateFonts.Dispose()
   }
+
+  $signature = '[DllImport("user32.dll", SetLastError=true)] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint flags, uint timeout, out IntPtr result);'
+  $type = Add-Type -MemberDefinition $signature -Name Win32SendMessageTimeout -Namespace Dotfiles -PassThru
+  $result = [IntPtr]::Zero
+  [void]$type::SendMessageTimeout([IntPtr]0xffff, 0x001D, [IntPtr]::Zero, [IntPtr]::Zero, 2, 5000, [ref]$result)
 
   Write-Output "Installed Caskaydia Nerd Font into Windows user fonts."
 }
@@ -207,19 +242,19 @@ style = { shape = "Block", blinking = "Off" }
 size = 12.0
 
 [font.normal]
-family = "CaskaydiaCove Nerd Font Mono"
+family = "CaskaydiaCove NFM"
 style = "Regular"
 
 [font.bold]
-family = "CaskaydiaCove Nerd Font Mono"
+family = "CaskaydiaCove NFM"
 style = "Bold"
 
 [font.italic]
-family = "CaskaydiaCove Nerd Font Mono"
+family = "CaskaydiaCove NFM"
 style = "Italic"
 
 [font.bold_italic]
-family = "CaskaydiaCove Nerd Font Mono"
+family = "CaskaydiaCove NFM"
 style = "Bold Italic"
 
 [terminal]

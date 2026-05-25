@@ -30,8 +30,9 @@ directory, and `ssh user@host` changes the title to `ssh: host` until the SSH
 session exits. Alacritty allows this because `dynamic_title = true`.
 
 On WSL, terminal fonts are a Windows concern because Windows Terminal and
-Windows Alacritty are Windows applications. The bootstrap installs Caskaydia
-Nerd Font into the Windows user font directory, patches Windows Terminal with a
+Windows Alacritty are Windows applications. The bootstrap installs the Nerd Font
+Cascadia/Caskaydia package into the Windows user font directory, uses the
+Windows-visible `CaskaydiaCove NFM` family, patches Windows Terminal with a
 `Dotfiles Muted` color scheme, and writes a matching Windows Alacritty config to
 `%APPDATA%\alacritty\alacritty.toml`.
 
