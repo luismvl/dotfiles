@@ -395,10 +395,56 @@ EOF
   echo "Installed Caskaydia Nerd Font and wrote Alacritty local font override."
 }
 
+install_latest_tree_sitter() {
+  # nvim-treesitter (main branch, used by LazyVim 15.x) needs tree-sitter >= 0.22
+  # which calls `tree-sitter build` instead of the old `build-wasm`.
+  # Ubuntu apt only ships 0.20.x, so we install the latest from GitHub releases.
+  local target="$HOME/.local/bin/tree-sitter"
+  mkdir -p "$HOME/.local/bin"
+
+  if [[ -x "$target" ]]; then
+    local current latest
+    current="$("$target" --version 2>/dev/null | awk '{print $2}')"
+    latest="$(curl -fsSL https://api.github.com/repos/tree-sitter/tree-sitter/releases/latest \
+      | python3 -c 'import sys,json; print(json.load(sys.stdin)["tag_name"])' \
+      | sed 's/^v//')"
+    if [[ -n "$current" && -n "$latest" && "$current" == "$latest" ]]; then
+      echo "tree-sitter already up to date: $current"
+      return 0
+    fi
+    echo "Updating tree-sitter: $current -> $latest"
+  fi
+
+  local tag url
+  tag="$(curl -fsSL https://api.github.com/repos/tree-sitter/tree-sitter/releases/latest \
+    | python3 -c 'import sys,json; print(json.load(sys.stdin)["tag_name"])')"
+  url="https://github.com/tree-sitter/tree-sitter/releases/download/${tag}/tree-sitter-cli-linux-x64.zip"
+
+  local archive
+  archive="$(mktemp)"
+  if ! curl -fL -o "$archive" "$url"; then
+    rm -f "$archive"
+    echo "Warning: failed to download tree-sitter from $url" >&2
+    return 1
+  fi
+
+  if ! unzip -o "$archive" -d "$HOME/.local/bin/" >/dev/null; then
+    rm -f "$archive"
+    echo "Warning: failed to extract tree-sitter archive" >&2
+    return 1
+  fi
+  rm -f "$archive"
+  chmod +x "$target"
+  echo "Installed tree-sitter $("$target" --version | awk '{print $2}') to $target"
+}
+
 if is_wsl; then
   install_windows_terminal_fonts_and_theme
+  install_latest_tree_sitter
   exit 0
 fi
+
+install_latest_tree_sitter
 
 if is_desktop_linux; then
   install_linux_desktop_font_and_alacritty
