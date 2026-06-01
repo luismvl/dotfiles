@@ -53,6 +53,8 @@ lockfile/config exists.
 
 - `nvm`: manages Node versions per user.
 - Node LTS: installed as the default Node version.
+- When the bootstrap installs a newer Node LTS, it asks `nvm` to reinstall global
+  npm packages from the current/default Node version so CLI tools stay available.
 - `corepack`: ships with Node and manages package-manager shims.
 - `pnpm`: activated through Corepack; good default package manager for modern JS
   projects.

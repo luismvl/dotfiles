@@ -101,7 +101,21 @@ install_nvm_and_node() {
 
   # shellcheck disable=SC1091
   source "$NVM_DIR/nvm.sh"
-  nvm install --lts
+
+  local current_node reinstall_from=""
+  current_node="$(nvm current 2>/dev/null || true)"
+  if [[ "$current_node" != "none" && "$current_node" != "system" ]]; then
+    reinstall_from="current"
+  elif nvm version default >/dev/null 2>&1 && [[ "$(nvm version default)" != "N/A" ]]; then
+    reinstall_from="default"
+  fi
+
+  if [[ -n "$reinstall_from" ]]; then
+    nvm install --lts --reinstall-packages-from="$reinstall_from"
+  else
+    nvm install --lts
+  fi
+
   nvm alias default 'lts/*'
   nvm use default
 

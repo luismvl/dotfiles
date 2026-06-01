@@ -217,8 +217,6 @@ function Write-WindowsAlacrittyConfig {
   Backup-File -Path $alacrittyConfig
 
   @'
-live_config_reload = true
-
 [window]
 dimensions = { columns = 160, lines = 60 }
 padding = { x = 8, y = 8 }
@@ -258,7 +256,10 @@ family = "CaskaydiaCove NFM"
 style = "Bold Italic"
 
 [terminal]
-shell = { program = "wsl.exe", args = ["~"] }
+
+[terminal.shell]
+program = "wsl.exe"
+args = ["~"]
 
 [colors.primary]
 background = "#111417"
@@ -299,6 +300,9 @@ bindings = [
   { key = "Minus", mods = "Control", action = "DecreaseFontSize" },
   { key = "Key0", mods = "Control", action = "ResetFontSize" },
 ]
+
+[general]
+live_config_reload = true
 '@ | Set-Content -LiteralPath $alacrittyConfig -Encoding UTF8
 
   Write-Output "Wrote Windows Alacritty config: $alacrittyConfig"
@@ -316,7 +320,18 @@ PS
 install_linux_desktop_font_and_alacritty() {
   if command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update
-    sudo apt-get install -y alacritty fontconfig
+    sudo apt-get install -y fontconfig
+  fi
+
+  # Install latest Alacritty via snap (Ubuntu apt is always behind).
+  # Skip if alacritty is already available and recent enough.
+  if ! command -v alacritty >/dev/null 2>&1; then
+    if command -v snap >/dev/null 2>&1; then
+      echo "Installing Alacritty via snap..."
+      sudo snap install alacritty --classic
+    else
+      echo "Warning: snap not available. Install Alacritty manually (https://alacritty.org/)." >&2
+    fi
   fi
 
   install_dir="$HOME/.local/share/fonts/CaskaydiaCoveNerdFont"

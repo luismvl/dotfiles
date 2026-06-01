@@ -1,10 +1,28 @@
 export ZSH="$HOME/.zsh"
 
-# Keep user-installed tools first, and remove app-internal helper paths that can
-# shadow normal system tools in inherited environments.
+# Keep user-installed tools first, rebuild missing system defaults, and remove
+# app-internal helper paths that can shadow normal system tools.
 typeset -U path PATH
 export BUN_INSTALL="$HOME/.bun"
-path=("$BUN_INSTALL/bin" "$HOME/.local/bin" $path)
+path=(
+  "$BUN_INSTALL/bin"
+  "$HOME/.local/bin"
+  "$HOME/bin"
+  "$HOME/.cargo/bin"
+  "$HOME/go/bin"
+  "/usr/local/go/bin"
+  $path
+  "/usr/local/sbin"
+  "/usr/local/bin"
+  "/usr/sbin"
+  "/usr/bin"
+  "/sbin"
+  "/bin"
+  "/usr/games"
+  "/usr/local/games"
+  "/snap/bin"
+)
+path=(${path:#$HOME/.codex/tmp/*})
 path=(${path:#*node_modules/@openai/codex*})
 path=(${path:#*codex-path*})
 export PATH
@@ -47,6 +65,9 @@ zstyle ':completion:*:approximate:*' max-errors 1 numeric
 # Word movement / deletion
 # -----------------------------
 
+# Remove /, ., - from word chars so Ctrl+Arrow stops inside paths
+WORDCHARS='*?_[]~=&;!#$%^(){}<>'
+
 bindkey '^[[1;5D' backward-word
 bindkey '^[[1;5C' forward-word
 
@@ -77,8 +98,10 @@ export NVM_DIR="$HOME/.nvm"
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"
 
-[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ] && source /usr/share/doc/fzf/examples/key-bindings.zsh
-[ -f /usr/share/doc/fzf/examples/completion.zsh ] && source /usr/share/doc/fzf/examples/completion.zsh
+if [[ -o zle ]]; then
+  [ -f /usr/share/doc/fzf/examples/key-bindings.zsh ] && source /usr/share/doc/fzf/examples/key-bindings.zsh
+  [ -f /usr/share/doc/fzf/examples/completion.zsh ] && source /usr/share/doc/fzf/examples/completion.zsh
+fi
 
 # -----------------------------
 # Aliases
@@ -184,30 +207,56 @@ autoload -Uz add-zsh-hook
 add-zsh-hook precmd _dotfiles_precmd_title
 
 # -----------------------------
+# Conditional up/down widgets
+# -----------------------------
+
+up-line-or-history-substring() {
+  if [[ "$BUFFER" == *$'\n'* ]]; then
+    zle up-line-or-history
+  else
+    zle history-substring-search-up
+  fi
+}
+
+down-line-or-history-substring() {
+  if [[ "$BUFFER" == *$'\n'* ]]; then
+    zle down-line-or-history
+  else
+    zle history-substring-search-down
+  fi
+}
+
+zle -N up-line-or-history-substring
+zle -N down-line-or-history-substring
+
+# -----------------------------
 # Plugins
 # -----------------------------
 
-_dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+if [[ -o zle ]]; then
+  _dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+  ZSH_AUTOSUGGEST_CLEAR_WIDGETS+=(bracketed-paste)
 
-if _dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh"; then
-  bindkey '^[[A' history-substring-search-up
-  bindkey '^[[B' history-substring-search-down
-  bindkey '^[OA' history-substring-search-up
-  bindkey '^[OB' history-substring-search-down
+  if _dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh"; then
+    bindkey '^[[A' up-line-or-history-substring
+    bindkey '^[[B' down-line-or-history-substring
+    bindkey '^[OA' up-line-or-history-substring
+    bindkey '^[OB' down-line-or-history-substring
 
-  bindkey -M viins '^[[A' history-substring-search-up
-  bindkey -M viins '^[[B' history-substring-search-down
-  bindkey -M viins '^[OA' history-substring-search-up
-  bindkey -M viins '^[OB' history-substring-search-down
+    bindkey -M viins '^[[A' up-line-or-history-substring
+    bindkey -M viins '^[[B' down-line-or-history-substring
+    bindkey -M viins '^[OA' up-line-or-history-substring
+    bindkey -M viins '^[OB' down-line-or-history-substring
 
-  bindkey -M main '^[[A' history-substring-search-up
-  bindkey -M main '^[[B' history-substring-search-down
-  bindkey -M main '^[OA' history-substring-search-up
-  bindkey -M main '^[OB' history-substring-search-down
+    bindkey -M main '^[[A' up-line-or-history-substring
+    bindkey -M main '^[[B' down-line-or-history-substring
+    bindkey -M main '^[OA' up-line-or-history-substring
+    bindkey -M main '^[OB' down-line-or-history-substring
+  fi
+
+  _dotfiles_source_if_exists "$HOME/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
+  _dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 fi
-
-_dotfiles_source_if_exists "$HOME/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
-_dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 
 # -----------------------------
 # Prompt
