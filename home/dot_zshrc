@@ -135,6 +135,15 @@ _dotfiles_source_if_exists() {
   [[ -r "$1" ]] && source "$1"
 }
 
+if command -v systemd-run >/dev/null 2>&1 && [[ -x "$HOME/.local/bin/zed" ]]; then
+  zed() {
+    systemd-run --user --collect --quiet \
+      --property=ExitType=cgroup \
+      --working-directory="$PWD" \
+      "$HOME/.local/bin/zed" "$@"
+  }
+fi
+
 ff() {
   local file preview
   preview='sed -n "1,200p" {}'
