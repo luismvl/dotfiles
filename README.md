@@ -59,6 +59,7 @@ are comfortable applying the bootstrap scripts immediately.
 - `eza`
 - `nvim` with LazyVim
 - `alacritty` config
+- `git` config (delta pager + SSH commit signing)
 - Ubuntu package bootstrap for common web-dev, Python, Go, and Java tools
 - Caskaydia Nerd Font on desktop Ubuntu only
 
@@ -74,6 +75,7 @@ These are intentionally left out of the repo:
 - `~/.config/nvim/lua/config/local.lua`
 - `~/.config/alacritty/local-font.toml`
 - `~/.codex/config.toml`
+- `~/.config/git/allowed_signers` (the signing key's public key; machine-local)
 
 ## Environment Behavior
 

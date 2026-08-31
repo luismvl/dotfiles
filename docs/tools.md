@@ -12,18 +12,22 @@ is to make the setup understandable instead of magic.
 
 - `zsh`: default interactive shell.
 - `zsh-autosuggestions`: suggests commands from history as you type.
-- `zsh-history-substring-search`: lets up/down search history based on the text
-  already typed.
 - `zsh-syntax-highlighting`: colors valid/invalid shell syntax while typing.
+- `zsh-completions`: extra completion definitions for many tools.
+- `zsh-you-should-use`: reminds you when you type the long form of an alias.
 - `fzf-tab`: improves tab completion with an interactive picker.
 - `starship`: fast prompt renderer.
 - `zoxide`: smarter `cd`; use `z <partial-dir-name>`.
 - `direnv`: loads per-project environment variables from `.envrc` after you
   approve them with `direnv allow`.
 - `tmux`: terminal multiplexer for sessions, panes, and persistent terminals.
+  - `tmux-sessionx`: fuzzy session switcher (`prefix + s` becomes searchable).
+  - `vim-tmux-navigator`: `Ctrl+h/j/k/l` moves between tmux panes and nvim
+    splits with one muscle memory.
 - `alacritty`: GPU-accelerated terminal on desktop Ubuntu.
 - `Caskaydia Nerd Font`: Cascadia Code patched with developer icons; used by
   Alacritty and useful for Neovim/LazyVim symbols.
+- `tealdeer` (`tldr`): community cheatsheets for common commands.
 
 The zsh config also sets terminal titles. Local shells show host/current
 directory, and `ssh user@host` changes the title to `ssh: host` until the SSH
@@ -40,7 +44,10 @@ Windows-visible `CaskaydiaCove NFM` family, patches Windows Terminal with a
 
 - `nvim`: installed from the official Neovim release when Ubuntu's version is
   too old for LazyVim.
-- `LazyVim`: Neovim distribution used as the base editor setup.
+- `LazyVim`: Neovim distribution used as the base editor setup. This setup is
+  intentionally "quiet": no tab bar, no splash screen, no fancy popups, and a
+  minimal status line so beginners can focus on editing. See
+  [docs/nvim-starter.md](nvim-starter.md) for a 15-minute cheat sheet.
 - Enabled language extras include TypeScript, Angular, Vue, Svelte, Astro,
   Tailwind, JSON, YAML, TOML, Markdown, Docker, Go, Java, Python, SQL, Prisma,
   ESLint, Prettier, and REST files.
@@ -103,10 +110,19 @@ project's `./gradlew` wrapper instead.
   needed.
 - `bat` (`batcat` on Ubuntu): `cat` with syntax highlighting.
 - `eza`: modern `ls` replacement.
-- `fzf`: fuzzy finder used by shell integrations and the `ff` helper.
+- `fzf`: fuzzy finder used by shell integrations and the `ff` helper. Installed
+  from the latest GitHub release (apt's version is too old for `--tmux` popups).
 - `jq`: JSON processor.
 - `shellcheck`: shell script linter.
 - `shfmt`: shell script formatter.
-- `git-delta`: nicer git diff pager.
+- `git-delta`: nicer git diff pager; wired as the default git pager, and diffs
+  use the `zdiff3` conflict style.
 - `gh`: GitHub CLI.
 - `tree-sitter-cli`: parser tooling used by editor/dev workflows.
+
+## Git
+
+- `delta` is the git pager: `git diff`, `git log`, and `git show` are
+  syntax-highlighted with word-level diffs.
+- Commits and tags are signed with the SSH key (`gpg.format = ssh`); the key is
+  registered on GitHub as a signing key for the "Verified" badge.
