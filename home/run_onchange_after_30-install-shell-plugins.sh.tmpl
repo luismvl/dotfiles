@@ -1,0 +1,37 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+backup_path() {
+  local target="$1"
+  if [[ -e "$target" || -L "$target" ]]; then
+    local backup="${target}.bak.$(date +%Y%m%d-%H%M%S)"
+    mv "$target" "$backup"
+    echo "Backed up $target -> $backup"
+  fi
+}
+
+clone_or_update() {
+  local repo="$1"
+  local dest="$2"
+
+  if [[ -d "$dest/.git" ]]; then
+    git -C "$dest" pull --ff-only
+    return
+  fi
+
+  if [[ -e "$dest" || -L "$dest" ]]; then
+    backup_path "$dest"
+  fi
+
+  git clone "$repo" "$dest"
+}
+
+mkdir -p "$HOME/.zsh/plugins" "$HOME/.tmux/plugins"
+
+clone_or_update "https://github.com/zsh-users/zsh-autosuggestions" "$HOME/.zsh/plugins/zsh-autosuggestions"
+clone_or_update "https://github.com/zsh-users/zsh-history-substring-search" "$HOME/.zsh/plugins/zsh-history-substring-search"
+clone_or_update "https://github.com/Aloxaf/fzf-tab" "$HOME/.zsh/plugins/fzf-tab"
+clone_or_update "https://github.com/zsh-users/zsh-syntax-highlighting" "$HOME/.zsh/plugins/zsh-syntax-highlighting"
+clone_or_update "https://github.com/tmux-plugins/tpm" "$HOME/.tmux/plugins/tpm"
+{{ end -}}

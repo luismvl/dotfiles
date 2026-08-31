@@ -1,5 +1,4 @@
-# Subdued, low-saturation eza theme aligned with the prompt.
-# If your eza build does not load theme files, see README fallback notes.
+# Subdued, low-saturation eza theme aligned with the terminal palette.
 
 permissions:
   user_read: { foreground: 244 }
