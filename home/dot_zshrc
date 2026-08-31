@@ -1,5 +1,3 @@
-export ZSH="$HOME/.zsh"
-
 # Keep user-installed tools first, rebuild missing system defaults, and remove
 # app-internal helper paths that can shadow normal system tools.
 typeset -U path PATH
@@ -76,7 +74,6 @@ bindkey '^[^[[C' forward-word
 bindkey '^[b' backward-word
 bindkey '^[f' forward-word
 
-bindkey '^H' backward-kill-word
 bindkey '^[[8;5u' backward-kill-word
 bindkey '^[[127;5u' backward-kill-word
 
@@ -216,52 +213,12 @@ autoload -Uz add-zsh-hook
 add-zsh-hook precmd _dotfiles_precmd_title
 
 # -----------------------------
-# Conditional up/down widgets
-# -----------------------------
-
-up-line-or-history-substring() {
-  if [[ "$BUFFER" == *$'\n'* ]]; then
-    zle up-line-or-history
-  else
-    zle history-substring-search-up
-  fi
-}
-
-down-line-or-history-substring() {
-  if [[ "$BUFFER" == *$'\n'* ]]; then
-    zle down-line-or-history
-  else
-    zle history-substring-search-down
-  fi
-}
-
-zle -N up-line-or-history-substring
-zle -N down-line-or-history-substring
-
-# -----------------------------
 # Plugins
 # -----------------------------
 
 if [[ -o zle ]]; then
   _dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
   ZSH_AUTOSUGGEST_CLEAR_WIDGETS+=(bracketed-paste)
-
-  if _dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh"; then
-    bindkey '^[[A' up-line-or-history-substring
-    bindkey '^[[B' down-line-or-history-substring
-    bindkey '^[OA' up-line-or-history-substring
-    bindkey '^[OB' down-line-or-history-substring
-
-    bindkey -M viins '^[[A' up-line-or-history-substring
-    bindkey -M viins '^[[B' down-line-or-history-substring
-    bindkey -M viins '^[OA' up-line-or-history-substring
-    bindkey -M viins '^[OB' down-line-or-history-substring
-
-    bindkey -M main '^[[A' up-line-or-history-substring
-    bindkey -M main '^[[B' down-line-or-history-substring
-    bindkey -M main '^[OA' up-line-or-history-substring
-    bindkey -M main '^[OB' down-line-or-history-substring
-  fi
 
   _dotfiles_source_if_exists "$HOME/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
   _dotfiles_source_if_exists "$HOME/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
