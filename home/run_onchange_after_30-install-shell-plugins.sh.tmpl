@@ -30,8 +30,11 @@ clone_or_update() {
 mkdir -p "$HOME/.zsh/plugins" "$HOME/.tmux/plugins"
 
 clone_or_update "https://github.com/zsh-users/zsh-autosuggestions" "$HOME/.zsh/plugins/zsh-autosuggestions"
-clone_or_update "https://github.com/zsh-users/zsh-history-substring-search" "$HOME/.zsh/plugins/zsh-history-substring-search"
+clone_or_update "https://github.com/zsh-users/zsh-completions" "$HOME/.zsh/plugins/zsh-completions"
 clone_or_update "https://github.com/Aloxaf/fzf-tab" "$HOME/.zsh/plugins/fzf-tab"
 clone_or_update "https://github.com/zsh-users/zsh-syntax-highlighting" "$HOME/.zsh/plugins/zsh-syntax-highlighting"
+clone_or_update "https://github.com/MichaelAquilina/zsh-you-should-use" "$HOME/.zsh/plugins/zsh-you-should-use"
 clone_or_update "https://github.com/tmux-plugins/tpm" "$HOME/.tmux/plugins/tpm"
+clone_or_update "https://github.com/omerxx/tmux-sessionx" "$HOME/.tmux/plugins/tmux-sessionx"
+clone_or_update "https://github.com/christoomey/vim-tmux-navigator" "$HOME/.tmux/plugins/vim-tmux-navigator"
 {{ end -}}

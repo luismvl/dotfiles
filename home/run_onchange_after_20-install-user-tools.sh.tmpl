@@ -168,10 +168,118 @@ install_bun() {
   echo "Installed Bun to $HOME/.bun/bin/bun"
 }
 
+install_fzf_latest() {
+  local target="$HOME/.local/bin/fzf"
+  mkdir -p "$HOME/.local/bin"
+
+  if [[ -x "$target" ]]; then
+    local current
+    current="$("$target" --version | awk '{print $1}' | sed 's/^v//' 2>/dev/null || true)"
+    local latest
+    latest="$(curl -fsSL https://api.github.com/repos/junegunn/fzf/releases/latest | grep -o '"tag_name": *"v[^"]*"' | head -n1 | grep -o 'v[^"]*' | sed 's/^v//')"
+    if [[ -n "$current" && -n "$latest" && "$current" == "$latest" ]]; then
+      echo "fzf already up to date: $current"
+      return 0
+    fi
+    echo "Updating fzf: $current -> $latest"
+  fi
+
+  local asset_name url tmpdir archive
+  case "$(uname -m)" in
+    x86_64|amd64) asset_name="fzf-linux_amd64.tar.gz" ;;
+    aarch64|arm64) asset_name="fzf-linux_arm64.tar.gz" ;;
+    *) warn "Unsupported architecture for fzf: $(uname -m)"; return ;;
+  esac
+
+  url="$(curl -fsSL https://api.github.com/repos/junegunn/fzf/releases/latest | grep -o "https://[^\"]*$asset_name" | head -n1 || true)"
+  if [[ -z "$url" ]]; then
+    warn "Could not find fzf release asset: $asset_name"
+    return 1
+  fi
+
+  tmpdir="$(mktemp -d)"
+  archive="$tmpdir/fzf.tar.gz"
+  if ! curl -fL -o "$archive" "$url"; then
+    rm -rf "$tmpdir"
+    warn "Failed to download fzf from $url"
+    return 1
+  fi
+  tar -xzf "$archive" -C "$tmpdir"
+  install -m 0755 "$tmpdir/fzf" "$target"
+  rm -rf "$tmpdir"
+  echo "Installed fzf $("$target" --version) to $target"
+}
+
+install_tealdeer() {
+  local target="$HOME/.local/bin/tldr"
+  mkdir -p "$HOME/.local/bin"
+
+  if [[ -x "$target" ]]; then
+    echo "tldr already installed"
+    return 0
+  fi
+
+  local tag asset_name url
+  case "$(uname -m)" in
+    x86_64|amd64) asset_name="tealdeer-linux-x86_64-musl" ;;
+    aarch64|arm64) asset_name="tealdeer-linux-aarch64-musl" ;;
+    *) warn "Unsupported architecture for tealdeer: $(uname -m)"; return ;;
+  esac
+
+  tag="$(curl -fsSL https://api.github.com/repos/tealdeer-rs/tealdeer/releases/latest | grep -o '"tag_name": *"v[^"]*"' | head -n1 | grep -o 'v[^"]*')"
+  if [[ -z "$tag" ]]; then
+    warn "Could not determine tealdeer latest version"
+    return 1
+  fi
+
+  url="https://github.com/tealdeer-rs/tealdeer/releases/download/${tag}/${asset_name}"
+  if ! curl -fL -o "$target" "$url"; then
+    warn "Failed to download tealdeer from $url"
+    return 1
+  fi
+  chmod +x "$target"
+  echo "Installed tldr ($tag) to $target"
+}
+
+install_tmux_latest() {
+  local target="$HOME/.local/bin/tmux"
+  mkdir -p "$HOME/.local/bin"
+
+  local required="3.7"
+  local current=""
+  if command -v tmux >/dev/null 2>&1; then
+    current="$(tmux -V 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+' | head -n1 || true)"
+  fi
+
+  if [[ -n "$current" ]] && command -v dpkg >/dev/null 2>&1 && dpkg --compare-versions "$current" ge "$required"; then
+    echo "tmux version $current is compatible"
+    return 0
+  fi
+
+  local tmpdir tarball version
+  tmpdir="$(mktemp -d)"
+  version="3.7"
+  tarball="$tmpdir/tmux.tar.gz"
+
+  if ! curl -fL -o "$tarball" "https://github.com/tmux/tmux/releases/download/${version}/tmux-${version}.tar.gz"; then
+    rm -rf "$tmpdir"
+    warn "Failed to download tmux ${version}"
+    return 1
+  fi
+
+  tar -xzf "$tarball" -C "$tmpdir"
+  ( cd "$tmpdir/tmux-$version" && ./configure --prefix="$HOME/.local" >/dev/null && make -j"$(nproc)" >/dev/null && make install >/dev/null )
+  rm -rf "$tmpdir"
+  echo "Installed tmux $("$target" -V) to $target"
+}
+
 install_starship
 install_zoxide
 install_uv
 install_neovim_latest
 install_nvm_and_node
 install_bun
+install_fzf_latest
+install_tealdeer
+install_tmux_latest
 {{ end -}}
