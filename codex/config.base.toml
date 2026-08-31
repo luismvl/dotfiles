@@ -84,6 +84,12 @@ hide_rate_limit_model_nudge = true
 path = "__HOME__/.codex/skills/marea-ui-ux/SKILL.md"
 enabled = false
 
+[agents]
+# Keep delegated work on the efficient Luna model even when the parent thread
+# is switched to a different model. Max reasoning is supported by GPT-5.6 Luna.
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "max"
+
 [features]
 js_repl = true
 multi_agent = true

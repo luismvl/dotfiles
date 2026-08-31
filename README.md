@@ -201,6 +201,7 @@ For machine-specific config that should not be committed to dotfiles:
 Codex notes:
 
 - `codex/config.base.toml` is the tracked global baseline (rules, MCP, behavior).
+- Spawned Codex agents default to `gpt-5.6-luna` with `max` reasoning, independent of the parent thread model.
 - Put machine-specific or secret values in untracked `codex/config.local.env`.
 - `install.sh` renders the final `~/.codex/config.toml` automatically.
 - Do not commit `~/.codex/skills` directories directly. Prefer committing:
