@@ -241,38 +241,6 @@ install_tealdeer() {
   echo "Installed tldr ($tag) to $target"
 }
 
-install_tmux_latest() {
-  local target="$HOME/.local/bin/tmux"
-  mkdir -p "$HOME/.local/bin"
-
-  local required="3.7"
-  local current=""
-  if command -v tmux >/dev/null 2>&1; then
-    current="$(tmux -V 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+' | head -n1 || true)"
-  fi
-
-  if [[ -n "$current" ]] && command -v dpkg >/dev/null 2>&1 && dpkg --compare-versions "$current" ge "$required"; then
-    echo "tmux version $current is compatible"
-    return 0
-  fi
-
-  local tmpdir tarball version
-  tmpdir="$(mktemp -d)"
-  version="3.7"
-  tarball="$tmpdir/tmux.tar.gz"
-
-  if ! curl -fL -o "$tarball" "https://github.com/tmux/tmux/releases/download/${version}/tmux-${version}.tar.gz"; then
-    rm -rf "$tmpdir"
-    warn "Failed to download tmux ${version}"
-    return 1
-  fi
-
-  tar -xzf "$tarball" -C "$tmpdir"
-  ( cd "$tmpdir/tmux-$version" && ./configure --prefix="$HOME/.local" >/dev/null && make -j"$(nproc)" >/dev/null && make install >/dev/null )
-  rm -rf "$tmpdir"
-  echo "Installed tmux $("$target" -V) to $target"
-}
-
 install_starship
 install_zoxide
 install_uv
@@ -281,5 +249,4 @@ install_nvm_and_node
 install_bun
 install_fzf_latest
 install_tealdeer
-install_tmux_latest
 {{ end -}}
