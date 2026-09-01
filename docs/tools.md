@@ -22,8 +22,6 @@ is to make the setup understandable instead of magic.
   approve them with `direnv allow`.
 - `tmux`: terminal multiplexer for sessions, panes, and persistent terminals.
   - `tmux-sessionx`: fuzzy session switcher (`prefix + s` becomes searchable).
-  - `vim-tmux-navigator`: `Ctrl+h/j/k/l` moves between tmux panes and nvim
-    splits with one muscle memory.
 - `alacritty`: GPU-accelerated terminal on desktop Ubuntu.
 - `Caskaydia Nerd Font`: Cascadia Code patched with developer icons; used by
   Alacritty and useful for Neovim/LazyVim symbols.

@@ -78,6 +78,7 @@ bindkey '^[^[[C' forward-word
 bindkey '^[b' backward-word
 bindkey '^[f' forward-word
 
+bindkey '^H' backward-kill-word
 bindkey '^[[8;5u' backward-kill-word
 bindkey '^[[127;5u' backward-kill-word
 
