@@ -8,8 +8,7 @@ is_wsl() {
 
 is_desktop_linux() {
   is_wsl && return 1
-  [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && return 0
-  command -v gsettings >/dev/null 2>&1
+  [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]
 }
 
 install_windows_terminal_fonts_and_theme() {
@@ -318,7 +317,7 @@ PS
 }
 
 install_linux_desktop_font_and_alacritty() {
-  if command -v apt-get >/dev/null 2>&1; then
+  if ! command -v fc-cache >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update
     sudo apt-get install -y fontconfig
   fi
@@ -415,10 +414,15 @@ install_latest_tree_sitter() {
     echo "Updating tree-sitter: $current -> $latest"
   fi
 
-  local tag url
+  local tag url arch
+  case "$(uname -m)" in
+    x86_64|amd64) arch="x64" ;;
+    aarch64|arm64) arch="arm64" ;;
+    *) echo "Warning: unsupported architecture for tree-sitter: $(uname -m)" >&2; return 0 ;;
+  esac
   tag="$(curl -fsSL https://api.github.com/repos/tree-sitter/tree-sitter/releases/latest \
     | python3 -c 'import sys,json; print(json.load(sys.stdin)["tag_name"])')"
-  url="https://github.com/tree-sitter/tree-sitter/releases/download/${tag}/tree-sitter-cli-linux-x64.zip"
+  url="https://github.com/tree-sitter/tree-sitter/releases/download/${tag}/tree-sitter-cli-linux-${arch}.zip"
 
   local archive
   archive="$(mktemp)"

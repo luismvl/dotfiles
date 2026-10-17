@@ -186,8 +186,8 @@ install_fzf_latest() {
 
   local asset_name url tmpdir archive
   case "$(uname -m)" in
-    x86_64|amd64) asset_name="fzf-linux_amd64.tar.gz" ;;
-    aarch64|arm64) asset_name="fzf-linux_arm64.tar.gz" ;;
+    x86_64|amd64) asset_name="linux_amd64.tar.gz" ;;
+    aarch64|arm64) asset_name="linux_arm64.tar.gz" ;;
     *) warn "Unsupported architecture for fzf: $(uname -m)"; return ;;
   esac
 
