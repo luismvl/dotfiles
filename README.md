@@ -88,6 +88,8 @@ Chezmoi scripts detect what they can:
   Windows Terminal theme, and writes a Windows Alacritty config for future use.
 - Ubuntu desktop installs Alacritty and Caskaydia Nerd Font.
 - `zsh` is set as the login shell once if needed.
+- Zsh disables mouse reporting before each prompt so terminal apps do not leave
+  mouse events appearing as text, including over SSH.
 - Bootstrap scripts are idempotent and re-run only when their script content
   changes.
 

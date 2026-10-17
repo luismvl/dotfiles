@@ -31,6 +31,10 @@ The zsh config also sets terminal titles. Local shells show host/current
 directory, and `ssh user@host` changes the title to `ssh: host` until the SSH
 session exits. Alacritty allows this because `dynamic_title = true`.
 
+Before each prompt, zsh disables mouse reporting left enabled by terminal apps.
+This prevents mouse events from appearing as text in local and SSH shells; it
+does not change mouse support while an application is running.
+
 On WSL, terminal fonts are a Windows concern because Windows Terminal and
 Windows Alacritty are Windows applications. The bootstrap installs the Nerd Font
 Cascadia/Caskaydia package into the Windows user font directory, uses the
