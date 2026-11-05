@@ -199,13 +199,15 @@ _dotfiles_ssh_title_target() {
 }
 
 ssh() {
-  local target status
+  # No terminal, no title: scripts and agents get plain ssh.
+  [[ -t 1 ]] || { command ssh "$@"; return; }
+  local target rc
   target="$(_dotfiles_ssh_title_target "$@")"
   [[ -n "$target" ]] && _dotfiles_set_terminal_title "ssh: $target"
   command ssh "$@"
-  status=$?
+  rc=$?
   _dotfiles_precmd_title
-  return "$status"
+  return "$rc"
 }
 
 # shortcut: reset leaked mouse modes at the prompt; fix the app if they leak while it runs.
